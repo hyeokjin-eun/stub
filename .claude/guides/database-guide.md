@@ -25,19 +25,24 @@ OTBOOK 프로젝트는 티켓 컬렉션 앱을 위한 확장 가능한 데이터
 
 ## 데이터베이스 구조
 
-### 테이블 목록
+### 테이블 목록 (총 17개)
 
 | 테이블 | 설명 | 관계 |
 |--------|------|------|
-| `users` | 사용자 | OAuth 지원, 프로필 |
+| `users` | 사용자 | OAuth 지원, 프로필, role(USER/ADMIN) |
 | `categories` | 카테고리 | 6개 기본 카테고리 (MUSIC, SPORTS, etc.) |
-| `catalog_groups` | 카탈로그 그룹 | 관리자/사용자 생성 그룹 |
+| `catalog_groups` | 카탈로그 그룹 | 관리자/사용자 생성 그룹 (계층 구조) |
 | `catalog_items` | 카탈로그 아이템 | 티켓, 카드 등 수집품 |
 | `catalog_item_metadata` | 아이템 메타데이터 | JSON 타입별 상세 정보 |
-| `likes` | 좋아요 | user ↔ item 매핑 |
-| `follows` | 팔로우 | user ↔ user 매핑 |
-| `collections` | 사용자 컬렉션 | 커스텀 컬렉션 |
-| `collection_items` | 컬렉션 아이템 | collection ↔ item 매핑 |
+| `stubs` | 수집 티켓 | user가 수집한 catalog_item (collected/uncollected) |
+| `likes` | 좋아요 | user ↔ catalog_item 매핑 |
+| `follows` | 팔로우 | user ↔ user 매핑 (follower/following) |
+| `collections` | 사용자 컬렉션 | 커스텀 컬렉션 (공개/비공개) |
+| `collection_items` | 컬렉션 아이템 | collection ↔ catalog_item 매핑 |
+| `collection_comments` | 컬렉션 댓글 | collection에 대한 댓글 |
+| `collection_likes` | 컬렉션 좋아요 | user ↔ collection 좋아요 |
+| `notifications` | 알림 | LIKE, FOLLOW, COMMENT, SYSTEM 알림 |
+| `banners` | 배너 | 홈 화면 배너 (순서, 활성화) |
 | `user_achievements` | 사용자 업적 | 업적 달성 기록 |
 | `search_history` | 검색 이력 | 사용자별 검색 기록 |
 
@@ -78,6 +83,13 @@ export class User {
   @Column({ nullable: true })
   oauth_id: string;
 
+  // 온보딩 & 권한
+  @Column({ default: false })
+  onboarding_completed: boolean;
+
+  @Column({ default: 'USER' })
+  role: 'USER' | 'ADMIN';
+
   @CreateDateColumn()
   created_at: Date;
 
@@ -90,6 +102,8 @@ export class User {
 - 이메일/비밀번호 + OAuth 소셜 로그인 지원
 - nickname UNIQUE 제약으로 중복 방지
 - UNIQUE(oauth_provider, oauth_id)로 OAuth 중복 방지
+- role 필드로 USER/ADMIN 권한 구분
+- onboarding_completed로 온보딩 완료 여부 추적
 
 ---
 
@@ -256,7 +270,209 @@ export class CatalogItemMetadata {
 
 ---
 
-### 6. UserAchievement (사용자 업적)
+### 6. Stub (수집 티켓)
+
+```typescript
+@Entity('stubs')
+export class Stub {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @ManyToOne(() => CatalogItem)
+  @JoinColumn({ name: 'catalog_item_id' })
+  catalog_item: CatalogItem;
+
+  @Column({ nullable: true })
+  image_url: string; // 사용자가 업로드한 실제 티켓 이미지
+
+  @Column({ default: 'collected' })
+  status: 'collected' | 'uncollected';
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+}
+```
+
+**특징:**
+- 사용자가 실제로 수집한 티켓 기록
+- catalog_item과는 별개로 사용자 소유 증명
+- 실제 티켓 사진 업로드 가능 (image_url)
+
+---
+
+### 7. Banner (배너)
+
+```typescript
+@Entity('banners')
+export class Banner {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @Column()
+  image_url: string;
+
+  @Column({ nullable: true })
+  link_url: string;
+
+  @Column({ default: 0 })
+  order_index: number;
+
+  @Column({ default: true })
+  is_active: boolean;
+
+  @CreateDateColumn()
+  created_at: Date;
+}
+```
+
+**특징:**
+- 홈 화면 배너 관리
+- order_index로 순서 조정
+- is_active로 활성화/비활성화
+
+---
+
+### 8. Notification (알림)
+
+```typescript
+@Entity('notifications')
+export class Notification {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column()
+  type: 'LIKE' | 'FOLLOW' | 'COMMENT' | 'SYSTEM';
+
+  @Column()
+  title: string;
+
+  @Column()
+  content: string;
+
+  @Column({ nullable: true })
+  link: string;
+
+  @Column({ default: false })
+  is_read: boolean;
+
+  @CreateDateColumn()
+  created_at: Date;
+}
+```
+
+**특징:**
+- EventEmitter로 자동 생성 (좋아요, 팔로우 시)
+- 4가지 타입: LIKE, FOLLOW, COMMENT, SYSTEM
+- is_read로 읽음/안읽음 관리
+
+---
+
+### 9. Collection (컬렉션)
+
+```typescript
+@Entity('collections')
+export class Collection {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column()
+  title: string;
+
+  @Column({ nullable: true })
+  description: string;
+
+  @Column({ default: true })
+  is_public: boolean;
+
+  @Column({ default: 0 })
+  view_count: number;
+
+  @Column({ default: 0 })
+  like_count: number;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+}
+```
+
+**특징:**
+- 사용자 커스텀 컬렉션
+- 공개/비공개 설정 (is_public)
+- 조회수, 좋아요 수 캐싱
+
+---
+
+### 10. CollectionComment (컬렉션 댓글)
+
+```typescript
+@Entity('collection_comments')
+export class CollectionComment {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Collection)
+  @JoinColumn({ name: 'collection_id' })
+  collection: Collection;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column('text')
+  content: string;
+
+  @CreateDateColumn()
+  created_at: Date;
+}
+```
+
+---
+
+### 11. CollectionLike (컬렉션 좋아요)
+
+```typescript
+@Entity('collection_likes')
+export class CollectionLike {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Collection)
+  @JoinColumn({ name: 'collection_id' })
+  collection: Collection;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @CreateDateColumn()
+  created_at: Date;
+}
+```
+
+---
+
+### 12. UserAchievement (사용자 업적)
 
 ```typescript
 @Entity('user_achievements')

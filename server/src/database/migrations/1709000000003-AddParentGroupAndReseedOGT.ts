@@ -197,18 +197,6 @@ export class AddParentGroupAndReseedOGT1709000000003
         UNION ALL SELECT 154,'OGT No.154 나우 유 씨 미 3',                    '2025. 11. 15. 발행 | 1종',                  '#171C31'
         UNION ALL SELECT 155,'OGT No.155 위키드: 포 굿',                      '2025. 11. 19. 발행 | 2종',                  '#487609'
         UNION ALL SELECT 156,'OGT No.156 국보',                               '2025. 11. 21. 발행 | 1종',                  '#F5121B'
-        UNION ALL SELECT 49,'OGT No.49 모비우스',                            '2022. 3. 30. 발행 | 1종',              '#007D87'
-        UNION ALL SELECT 50,'OGT No.50 신비한 동물들과 덤블도어의 비밀',        '2022. 4. 13. 발행 | 3종',              '#635B52'
-        UNION ALL SELECT 51,'OGT No.51 닥터 스트레인지: 대혼돈의 멀티버스',    '2022. 5. 11. 발행 | 1종+투명지 1종',      '#AA2828'
-        UNION ALL SELECT 52,'OGT No.52 범죄도시 2',                          '2022. 5. 18. 발행 | 1종',              '#FAB914'
-        UNION ALL SELECT 53,'OGT No.53 쥬라기 월드: 도미니언',                '2022. 6. 1. 발행 | 1종',               '#00375F'
-        UNION ALL SELECT 54,'OGT No.54 버즈 라이트이어',                      '2022. 6. 15. 발행 | 1종+스티커 1종',      '#280F46'
-        UNION ALL SELECT 55,'OGT No.55 탑건: 매버릭',                        '2022. 6. 25. 발행 | 1종',              '#AA7841'
-        UNION ALL SELECT 56,'OGT No.56 헤어질 결심',                         '2022. 6. 29. 발행 | 2종',              '#46462D'
-        UNION ALL SELECT 57,'OGT No.57 토르: 러브 앤 썬더',                   '2022. 7. 13. 발행 | 2종',              '#1E5082'
-        UNION ALL SELECT 58,'OGT No.58 미니언즈 2',                          '2022. 7. 20. 발행 | 1종',              '#FAB914'
-        UNION ALL SELECT 59,'OGT No.59 비상선언',                            '2022. 8. 3. 발행 | 1종+스티커 1종',       '#41646E'
-        UNION ALL SELECT 60,'OGT No.60 헌트',                               '2022. 8. 10. 발행 | 1종+커버 1종',       '#D23C00'
       ) AS t
       WHERE c.code = 'CINEMA' AND u.nickname = 'otbook_official'
       ORDER BY t.sort_order
@@ -216,14 +204,13 @@ export class AddParentGroupAndReseedOGT1709000000003
 
     // 5. 각 영화 그룹 하위에 티켓 이미지 아이템 삽입
     await queryRunner.query(`
-      INSERT INTO catalog_items (title, description, category_id, catalog_group_id, owner_id, status, image_url, thumbnail_url, color, is_public, like_count, view_count, sort_order, created_at, updated_at)
+      INSERT INTO catalog_items (title, description, category_id, catalog_group_id, owner_id, status, image_url, thumbnail_url, color, is_public, like_count, view_count, created_at, updated_at)
       SELECT
         t.title, t.description,
         c.id,
         (SELECT id FROM catalog_groups WHERE name = t.group_name),
         u.id,
         'collected', t.image_url, t.image_url, t.color, 1, 0, 0,
-        CAST(SUBSTR(t.title, 8, INSTR(SUBSTR(t.title, 8), ' ') - 1) AS INTEGER),
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       FROM categories c, users u
       JOIN (
@@ -288,18 +275,6 @@ export class AddParentGroupAndReseedOGT1709000000003
         UNION ALL SELECT 'OGT No.58 미니언즈 2',               'OGT No.58 티켓','2022. 7. 20. 발행','https://i.namu.wiki/i/xrHFsCNbhNvX-DkIuZ6cXQHkTGtY0rfrf6YrDBtHjWOBHMBYDbqzgEc_jcprLC_tmm8nGtaLIAYq_cMJ-j-qzdS_zhDMVCNKRJm9xApIirfh9z4Ig45y1xfJ9szyG4S8HxMMPkQXkroLPrgsAeNVag.webp','#FAB914'
         UNION ALL SELECT 'OGT No.59 비상선언',                 'OGT No.59 티켓','2022. 8. 3. 발행', 'https://i.namu.wiki/i/lbSXK4A_2qAXsd80g4m4qeQQoqLEP0aZiJJPmoyYYFvx1viTupi1o9Shc4KVYyugxOjoQ5en0yI8v5ZzUs_UG1xdvm5Lcmp4PFSqTvMBMOK_ptbgr_rc5k4PQn0FpO9CnjSXdduBmYB4QcDXGn2MyA.webp','#41646E'
         UNION ALL SELECT 'OGT No.60 헌트',                    'OGT No.60 티켓','2022. 8. 10. 발행','https://i.namu.wiki/i/vnDk89UDAzk5yboAvW2vPFFyCVBI2JLN6gqdNl7sil_cv4-fglnq__47TnN2SZBWggSVLH6CqIenj1UsHGQiFPq3Gf4F7e7b4uLhAM8cBxhXkad6JhfAcZGOm3cuL3iLSUBRTJi4eDb86zhze2H46g.webp','#D23C00'
-        UNION ALL SELECT 'OGT No.49 모비우스',               'OGT No.49 티켓','2022. 3. 30. 발행','https://i.namu.wiki/i/ms0_3UveaZYZd5nFG6O-N0ArqU6iim3MsjJMsm5ZcVhJhwNxBfBUmM8CY7PuSiRBGeI2Z0ekTLKRbcWII26LHtlm00hjD8QPwaPe0gNRH0luVlMG5JP5ravajJWVmdDOdR5qbJmnpsWRydv4ancoCg.webp','#CF2027'
-        UNION ALL SELECT 'OGT No.50 신비한 동물들과 덤블도어의 비밀','OGT No.50 티켓','2022. 4. 13. 발행','https://i.namu.wiki/i/Ylovmx5wS6ZFrOLPTPNfSd2pDskR2PIINUyJ4cB_IFpTGUa-t8xGEYg9HlUwhvodvQ7oJvLuoIJiaGlWEzYnO7ol-kpjEbqLDuqePOZv6mBnhOteCXctLz-qYcDR4lFPlQkHvfYAfFIolmfnKoy9Pw.webp','#635B52'
-        UNION ALL SELECT 'OGT No.51 닥터 스트레인지: 대혼돈의 멀티버스','OGT No.51 티켓','2022. 5. 11. 발행','https://i.namu.wiki/i/UgEFQUwreGSoq9vHiAx47NkgWgA22j9zdwnRraP-pNONUReKaeAVkN-tkq4T8QvFW4U_2mn7Lw2O4_psPs02y7UXrsFFNW7AzQm8hx91_chm9MF8L4i2mrXpms2oRAbG_QTz7CXModeixAohQ7mn0g.webp','#AA2828'
-        UNION ALL SELECT 'OGT No.52 범죄도시 2',              'OGT No.52 티켓','2022. 5. 18. 발행','https://i.namu.wiki/i/eKZsBX3C2i3gDGWI-dXIGiKDCAYQI-dFlAncg8mVqujJ6Z1BY17FqW-tPWsrxC_-_7fhgqSwst3NKsJVNzj1C9q_ln0NX42GHIK9Y9t8tgxHtDTr7wL6_cFDIXikmlTD8pJeWQOaXQSfn2dlx6h4wQ.webp','#FAB914'
-        UNION ALL SELECT 'OGT No.53 쥬라기 월드: 도미니언',   'OGT No.53 티켓','2022. 6. 1. 발행',  'https://i.namu.wiki/i/4-r8H-uggPmE_RksoopZjHUQVASpMWai7kzK9TJm0NOZrWReVJ6vm3F5vS51Bty4bQtYlWc_wXbq_0y83cJTnEboNsSXSFN7PIvcv5xFmgT2M2XQSRT4Ub8Hw_SMkd5JsIXbxlvqBeV9ZpgYLRJAkw.webp','#00375F'
-        UNION ALL SELECT 'OGT No.54 버즈 라이트이어',          'OGT No.54 티켓','2022. 6. 15. 발행','https://i.namu.wiki/i/ZUfkwmLwIOA8krXLuV1sPLuz2gyJIAmjQCzeKQU2_Uqa7NFKdh8V5oKCdDkYqT_U8N5uYt2KH8UoJHs7D_Q3NONVXX9usyLf-XCRSLR792MuWVZvYEBBn88vXPaa5SypQPN-8JadRdpwPXiV7yVQfw.webp','#280F46'
-        UNION ALL SELECT 'OGT No.55 탑건: 매버릭',            'OGT No.55 티켓','2022. 6. 25. 발행','https://i.namu.wiki/i/xDX9MwcbJuM6rbfc2wXGJcHntKY2enYPmbGQj950glYBdglVq7v1lEeAQAcJOs5LOKt2FN-WMT7ivliI-diatR_hZc9CLlnejdVuRtEzMrIMFlGxUEWSuZyd3OLtOoR5DoTSzzNAPsQocgXSMFiMuQ.webp','#AA7841'
-        UNION ALL SELECT 'OGT No.56 헤어질 결심',             'OGT No.56 티켓','2022. 6. 29. 발행','https://i.namu.wiki/i/D7mTCefB11OaJSxa6y2745DKOEhXboL5myBajXuVByoBO04nD3wWRMZ2S8RA4-ofggyUOtdfQ29m4HUc_ZLEHqVfKHVel3jE4_tyVeZ-F5HS3eev2R5o1TC5IeP_mSr-EGWl_GxKgQL4qsZN0mXfAw.webp','#46462D'
-        UNION ALL SELECT 'OGT No.57 토르: 러브 앤 썬더',       'OGT No.57 티켓','2022. 7. 13. 발행','https://i.namu.wiki/i/0YbEnWT1nOcCpwF6it2tF02bgE4II5ka3Q0BzpTmcq5BiMY-Ra7AU2ob2wLD_u0NOpqYu4suOzI6uGR38yIEZNzr80HTNr5fzWkRpeYSc8t1bwuJKz6B8fFSOIF9I7o-93p8_heENerbgsJIzHaWIg.webp','#1E5082'
-        UNION ALL SELECT 'OGT No.58 미니언즈 2',              'OGT No.58 티켓','2022. 7. 20. 발행','https://i.namu.wiki/i/xrHFsCNbhNvX-DkIuZ6cXQHkTGtY0rfrf6YrDBtHjWOBHMBYDbqzgEc_jcprLC_tmm8nGtaLIAYq_cMJ-j-qzdS_zhDMVCNKRJm9xApIirfh9z4Ig45y1xfJ9szyG4S8HxMMPkQXkroLPrgsAeNVag.webp','#FAB914'
-        UNION ALL SELECT 'OGT No.59 비상선언',                'OGT No.59 티켓','2022. 8. 3. 발행',  'https://i.namu.wiki/i/lbSXK4A_2qAXsd80g4m4qeQQoqLEP0aZiJJPmoyYYFvx1viTupi1o9Shc4KVYyugxOjoQ5en0yI8v5ZzUs_UG1xdvm5Lcmp4PFSqTvMBMOK_ptbgr_rc5k4PQn0FpO9CnjSXdduBmYB4QcDXGn2MyA.webp','#41646E'
-        UNION ALL SELECT 'OGT No.60 헌트',                   'OGT No.60 티켓','2022. 8. 10. 발행','https://i.namu.wiki/i/vnDk89UDAzk5yboAvW2vPFFyCVBI2JLN6gqdNl7sil_cv4-fglnq__47TnN2SZBWggSVLH6CqIenj1UsHGQiFPq3Gf4F7e7b4uLhAM8cBxhXkad6JhfAcZGOm3cuL3iLSUBRTJi4eDb86zhze2H46g.webp','#D23C00'
         UNION ALL SELECT 'OGT No.61 오펀: 천사의 탄생',        'OGT No.61 티켓','2022. 10. 12. 발행','https://i.namu.wiki/i/7Yw7svO3CQZQeQzyL2F6406xbh9oj8vPmvk9HkSz5nzjiNNWIo9oxX349LYkqi-5lED5hXLZYHg9QtV80pcp9DsyPmiDo4o9YI4lL_D4m1KCDcmYwr7HrtvBIE6_dIhfiNn6l-6v8GVOqMN-flw7xg.webp','#7E0709'
         UNION ALL SELECT 'OGT No.62 에브리씽 에브리웨어 올 앳 원스','OGT No.62 티켓','2022. 10. 15. 발행','https://i.namu.wiki/i/phEUalDogw2iGvLyaHQA9BT-6wH-3ABGamD4nw6zcpM5hgtgOakIL7Lk1KE3B89pkIyT2ZwKl-I0CYA5IxpMe7eccpa0WZ-P4nVnzF1vucIENyHaIwBgXsK7PG1VmJ95jouLqcP5rP8T3lTCH7gbqw.webp','#000000'
         UNION ALL SELECT 'OGT No.63 블랙 아담',               'OGT No.63 티켓','2022. 10. 19. 발행','https://i.namu.wiki/i/C-KExX9jXdln5yc9VmFofA1A_LRLfwps9y3nxMQhZZA9f4RZLqWOVjI1dLcQaZFbqbStRCRPet7_Y58H33Od3azLA4eJpMKAITNKwV3mL1dAyO2OC3p9nJ0wheu7zBvZXvNA_L8F5xxXlHDChHdtWw.webp','#F2B33D'

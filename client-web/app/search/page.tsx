@@ -58,8 +58,9 @@ export default function SearchPage() {
     setIsSearching(true)
     try {
       const response = await catalogGroupsApi.getAll({ limit: 500 })
-      // Filter results by group name (카탈로그 그룹 이름으로 검색)
+      // Filter results by group name (카탈로그 그룹 이름으로 검색), 최상위 그룹 제외
       const filtered = response.data.filter((group) =>
+        !!group.parent_group_id &&
         group.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
       setSearchResults(filtered)
@@ -237,6 +238,19 @@ interface GroupCardProps {
 function GroupCard({ group, onClick }: GroupCardProps) {
   const isHot = group.view_count > 500
   const isNew = new Date(group.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
+
+  const getCategoryIcon = (code?: string) => {
+    const iconMap: Record<string, React.ElementType> = {
+      MUSIC: Music,
+      SPORTS: Trophy,
+      THEATER: Drama,
+      EXHIBITION: Palette,
+      CINEMA: Film,
+      FESTIVAL: PartyPopper,
+    }
+    const IconComponent = iconMap[code || ''] || Ticket
+    return <IconComponent size={20} />
+  }
 
   const getCategoryColor = (code?: string): string => {
     const colorMap: Record<string, string> = {

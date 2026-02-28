@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { bannersApi } from '@/lib/api'
 import type { Banner as BannerType } from '@/lib/api/types'
 
+const BACKEND_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002').replace(/\/api$/, '')
+
 export default function Banner() {
   const [banners, setBanners] = useState<BannerType[]>([])
   const [current, setCurrent] = useState(0)
@@ -100,7 +102,7 @@ export default function Banner() {
             <div key={banner.id} className="banner-slide">
               {banner.image_url && (
                 <img
-                  src={`http://localhost:3002${banner.image_url}`}
+                  src={banner.image_url?.startsWith('http') ? banner.image_url : `${BACKEND_BASE}${banner.image_url}`}
                   alt={banner.title}
                   className="banner-image"
                   draggable={false}

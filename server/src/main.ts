@@ -8,7 +8,7 @@ async function bootstrap() {
 
   // CORS 설정 (프론트엔드 연동)
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://next-exit.me'],
     credentials: true,
   });
 

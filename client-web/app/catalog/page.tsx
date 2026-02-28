@@ -81,8 +81,8 @@ export default function CatalogPage() {
     }
   }
 
-  // 자식 그룹만 표시 (parent_group_id가 있는 것만)
-  const leafGroups = groups.filter((g) => g.parent_group_id != null)
+  // 자식 그룹만 표시 (parent_group_id가 있는 것만, 0·null·undefined 모두 제외)
+  const leafGroups = groups.filter((g) => !!g.parent_group_id)
 
   // 카테고리 필터링
   let filteredGroups =
@@ -245,17 +245,7 @@ export default function CatalogPage() {
 
           {/* Catalog Content */}
           <div id="catalog-content" className="anim anim-d4" style={{ padding: '16px 12px 0' }}>
-            {loading ? (
-              <div
-                style={{
-                  padding: '40px',
-                  textAlign: 'center',
-                  color: 'var(--txt-muted)',
-                }}
-              >
-                로딩 중...
-              </div>
-            ) : activeFilter === 'ALL' ? (
+            {activeFilter === 'ALL' ? (
               <>
                 {categories.slice(1).map((cat) => {
                   const categoryGroups = groupedByCategory[cat.code] || []

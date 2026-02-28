@@ -20,6 +20,7 @@ export default function Home() {
   const [tickets, setTickets] = useState<CatalogItem[]>([])
   const [groups, setGroups] = useState<CatalogGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [recommendedGroups, setRecommendedGroups] = useState<CatalogGroup[]>([])
 
   // QuickStats 데이터
   const [totalTickets, setTotalTickets] = useState(0)
@@ -33,18 +34,7 @@ export default function Home() {
   const loadData = async () => {
     try {
       setLoading(true)
-      console.log('🔄 Starting to load data...')
 
-      // Try direct fetch first to test connectivity
-      console.log('Testing direct fetch...')
-      const testResponse = await fetch('http://localhost:3002/categories')
-      if (!testResponse.ok) {
-        throw new Error(`HTTP error! status: ${testResponse.status}`)
-      }
-      const testData = await testResponse.json()
-      console.log('✅ Direct fetch works:', testData)
-
-      // Now try with API client - including stats data
       const [categoriesData, ticketsData, groupsData, collectorsCount] = await Promise.all([
         categoriesApi.getAll(),
         catalogItemsApi.getAll({ limit: 20 }),
@@ -58,8 +48,10 @@ export default function Home() {
       setCategories([{ id: 0, code: 'ALL', name: '전체', icon: '', color: '', created_at: '' }, ...categoriesData])
       setTickets(ticketsData.data)
 
-      // Store all groups for different sections
-      setGroups(groupsData.data)
+      // Store all groups for different sections (최상위 컨테이너 그룹 제외)
+      const childGroups = groupsData.data.filter((g) => !!g.parent_group_id)
+      setGroups(childGroups)
+      setRecommendedGroups([...childGroups].sort(() => Math.random() - 0.5).slice(0, 5))
       setTotalTickets(ticketsData.total)
       setTotalCollections(groupsData.total)
       setTotalCollectors(collectorsCount)
@@ -95,9 +87,6 @@ export default function Home() {
     activeCategory === 'ALL'
       ? groups
       : groups.filter((g) => g.category?.code === activeCategory)
-
-  // 추천 컬렉션: 랜덤 5개
-  const recommendedGroups = [...groups].sort(() => Math.random() - 0.5).slice(0, 5)
 
   // 최근 등록: 최신순 6개 (카테고리 필터링 적용)
   const recentGroups = [...filteredGroups]
@@ -138,11 +127,7 @@ export default function Home() {
           style={{ paddingTop: '14px' }}
         /> */}
 
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--txt-muted)' }}>
-            로딩 중...
-          </div>
-        ) : (
+        {!loading && (
           <>
             {/* 추천 컬렉션 */}
             <div className="section-header anim anim-d3">

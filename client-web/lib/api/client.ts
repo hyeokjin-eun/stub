@@ -9,9 +9,20 @@ export const apiClient: AxiosInstance = axios.create({
   withCredentials: false,
 })
 
+let pendingRequests = 0
+
+function dispatchLoading(loading: boolean) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('api-loading', { detail: loading }))
+  }
+}
+
 // Request interceptor - 세션 백엔드 토큰 우선, localStorage 폴백
 apiClient.interceptors.request.use(
   async (config) => {
+    pendingRequests++
+    if (pendingRequests === 1) dispatchLoading(true)
+
     if (typeof window !== 'undefined') {
       // 1순위: NextAuth 세션의 백엔드 JWT
       const session = await getSession()
@@ -32,8 +43,15 @@ apiClient.interceptors.request.use(
 
 // Response interceptor
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    pendingRequests = Math.max(0, pendingRequests - 1)
+    if (pendingRequests === 0) dispatchLoading(false)
+    return response
+  },
   (error: AxiosError) => {
+    pendingRequests = Math.max(0, pendingRequests - 1)
+    if (pendingRequests === 0) dispatchLoading(false)
+
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token')

@@ -27,9 +27,9 @@ export class CreateBanners1709000000004 implements MigrationInterface {
     // Insert sample banners
     await queryRunner.query(`
       INSERT INTO banners (title, subtitle, tag, image_url, link_url, background_color, order_index, is_active) VALUES
-        ('BTS 월드투어\n2024 오리지널', '서울 잠실주경기장 · 1,240명 소장 중', '★ 이번 주 HOT', '/uploads/images/banner/banner1.jpg', '/catalog/1', '#1a0030', 1, 1),
-        ('2002 FIFA\n월드컵 티켓', '역사적인 그 순간 · 874명 소장 중', '⚡ 스포츠 컬렉션', '/uploads/images/banner/banner2.jpg', '/catalog/2', '#200000', 2, 1),
-        ('오페라의 유령\n25주년 공연', '블루스퀘어 인터파크홀 · 312명 소장', 'NEW 신규 등록', '/uploads/images/banner/banner3.jpg', '/catalog/3', '#001a1a', 3, 1)
+        ('BTS 월드투어\n2024 오리지널', '서울 잠실주경기장 · 1,240명 소장 중', '★ 이번 주 HOT', '/uploads/images/banner/banner1.png', '/catalog/1', '#1a0030', 1, 1),
+        ('2002 FIFA\n월드컵 티켓', '역사적인 그 순간 · 874명 소장 중', '⚡ 스포츠 컬렉션', '/uploads/images/banner/banner2.png', '/catalog/2', '#200000', 2, 1),
+        ('오페라의 유령\n25주년 공연', '블루스퀘어 인터파크홀 · 312명 소장', 'NEW 신규 등록', '/uploads/images/banner/banner3.png', '/catalog/3', '#001a1a', 3, 1)
     `);
   }
 

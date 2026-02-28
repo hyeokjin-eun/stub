@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Navigation from '@/components/Navigation'
 import Providers from '@/components/Providers'
+import LoadingOverlay from '@/components/LoadingOverlay'
 import './globals.css'
 
 export default function RootLayout({
@@ -14,7 +15,7 @@ export default function RootLayout({
   const showNavigation = pathname !== '/login' && pathname !== '/onboarding'
 
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -22,8 +23,9 @@ export default function RootLayout({
         <title>OTBOOK</title>
         <meta name="description" content="수집가들을 위한 오리지널 티켓 컬렉션 앱" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <Providers>
+          <LoadingOverlay />
           <div className="app-container">
             <main className="main-content">{children}</main>
             {showNavigation && <Navigation />}

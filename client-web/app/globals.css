@@ -106,6 +106,38 @@ html, body {
   border-color: var(--gold);
 }
 
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(10, 10, 10, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlay-in 0.15s ease;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 2.5px solid rgba(201, 168, 76, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Banner */
 .banner-wrapper {
   position: relative;

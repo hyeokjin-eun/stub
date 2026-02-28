@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { ChevronLeft, ChevronRight, Check, Lock, Trash2, Heart, Send, User, MessageCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Lock, Trash2, Heart, Send, User, MessageCircle, Edit, X } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { collectionsApi, collectionLikesApi, collectionCommentsApi } from '@/lib/api'
 import type { Collection, CollectionItem, CollectionComment } from '@/lib/api/types'
@@ -54,6 +54,8 @@ export default function CollectionDetailPage() {
   const [comments, setComments] = useState<CollectionComment[]>([])
   const [commentText, setCommentText] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editForm, setEditForm] = useState({ name: '', description: '', is_public: true })
 
   const loadData = useCallback(async () => {
     try {
@@ -151,6 +153,36 @@ export default function CollectionDetailPage() {
     }
   }
 
+  const handleEditClick = () => {
+    if (!collection) return
+    setEditForm({
+      name: collection.name,
+      description: collection.description || '',
+      is_public: collection.is_public,
+    })
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editForm.name.trim()) {
+      alert('컬렉션 이름을 입력하세요.')
+      return
+    }
+    try {
+      const updated = await collectionsApi.update(collectionId, {
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || undefined,
+        is_public: editForm.is_public,
+      })
+      setCollection(updated)
+      setShowEditModal(false)
+      alert('컬렉션이 수정되었습니다.')
+    } catch (error) {
+      console.error('Failed to update collection:', error)
+      alert('컬렉션 수정에 실패했습니다.')
+    }
+  }
+
   // 내가 만든 컬렉션인지 확인
   const isMyCollection = session?.user?.id && collection?.user_id === Number(session.user.id)
 
@@ -162,8 +194,12 @@ export default function CollectionDetailPage() {
           <div className="icon-btn" onClick={() => router.back()}>
             <ChevronLeft size={20} />
           </div>
-          {!isMyCollection && (
-            <div className="header-actions">
+          <div className="header-actions">
+            {isMyCollection ? (
+              <div className="icon-btn" onClick={handleEditClick}>
+                <Edit size={18} />
+              </div>
+            ) : (
               <div
                 className="icon-btn"
                 onClick={handleLike}
@@ -185,8 +221,8 @@ export default function CollectionDetailPage() {
                   {likeCount}
                 </span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Hero */}
@@ -234,7 +270,7 @@ export default function CollectionDetailPage() {
               className={`ticket-tab ${activeTab === 'items' ? 'active' : ''}`}
               onClick={() => setActiveTab('items')}
             >
-              티켓 {items.length}
+              수집품 {items.length}
             </div>
             <div
               className={`ticket-tab ${activeTab === 'comments' ? 'active' : ''}`}
@@ -305,6 +341,143 @@ export default function CollectionDetailPage() {
         </div>
       </main>
       <Navigation />
+
+      {/* 수정 모달 */}
+      {showEditModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 999,
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--card)', borderRadius: '16px',
+              border: '1px solid var(--border)',
+              width: '100%', maxWidth: '420px',
+              padding: '24px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 모달 헤더 */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: '20px',
+            }}>
+              <h2 style={{
+                fontSize: '18px', fontWeight: 700, color: 'var(--txt)',
+                margin: 0,
+              }}>
+                컬렉션 수정
+              </h2>
+              <div
+                className="icon-btn"
+                onClick={() => setShowEditModal(false)}
+                style={{ padding: '4px' }}
+              >
+                <X size={20} />
+              </div>
+            </div>
+
+            {/* 이름 */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block', fontSize: '13px', fontWeight: 600,
+                color: 'var(--txt)', marginBottom: '6px',
+              }}>
+                컬렉션 이름 *
+              </label>
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="컬렉션 이름을 입력하세요"
+                style={{
+                  width: '100%', padding: '10px 12px',
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: '8px', fontSize: '14px', color: 'var(--txt)',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            {/* 설명 */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block', fontSize: '13px', fontWeight: 600,
+                color: 'var(--txt)', marginBottom: '6px',
+              }}>
+                설명
+              </label>
+              <textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="컬렉션에 대한 설명을 입력하세요"
+                rows={3}
+                style={{
+                  width: '100%', padding: '10px 12px',
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: '8px', fontSize: '14px', color: 'var(--txt)',
+                  outline: 'none', resize: 'vertical',
+                }}
+              />
+            </div>
+
+            {/* 공개 여부 */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                cursor: 'pointer',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={editForm.is_public}
+                  onChange={(e) => setEditForm({ ...editForm, is_public: e.target.checked })}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', color: 'var(--txt)' }}>
+                  공개 컬렉션
+                </span>
+              </label>
+              <p style={{
+                fontSize: '12px', color: 'var(--txt-muted)',
+                margin: '6px 0 0 24px',
+              }}>
+                공개 컬렉션은 다른 사용자가 볼 수 있습니다
+              </p>
+            </div>
+
+            {/* 버튼 */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px',
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  color: 'var(--txt)', fontSize: '14px', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all .2s',
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px',
+                  background: 'var(--gold)', border: 'none',
+                  color: '#0a0a0a', fontSize: '14px', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all .2s',
+                }}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

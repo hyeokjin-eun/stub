@@ -4,16 +4,27 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Music, Ticket, Globe } from 'lucide-react'
+import { appSettingsApi } from '@/lib/api'
 
 function LoginContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [deletedNotice, setDeletedNotice] = useState(false)
+  const [appTitle, setAppTitle] = useState('OTBOOK')
   const searchParams = useSearchParams()
 
   useEffect(() => {
     if (searchParams.get('deleted') === 'true') {
       setDeletedNotice(true)
     }
+
+    // App Settings 불러오기
+    appSettingsApi.getSettings().then(settings => {
+      if (settings?.app_title) {
+        setAppTitle(settings.app_title)
+      }
+    }).catch(() => {
+      // 실패 시 기본값 유지
+    })
   }, [searchParams])
 
   const handleLogin = async () => {
@@ -55,7 +66,7 @@ function LoginContent() {
         )}
 
         <div className="login-hero">
-          <div className="hero-logo">OT<span>BOOK</span></div>
+          <div className="hero-logo">{appTitle}<span>BOOK</span></div>
           <div className="hero-tagline">Original Ticket Collection</div>
 
           <div className="ticket-deco">
@@ -83,7 +94,7 @@ function LoginContent() {
       {isLoading && (
         <div className="login-loading show">
           <div className="loading-inner">
-            <div className="loading-logo">OT<span>BOOK</span></div>
+            <div className="loading-logo">{appTitle}<span>BOOK</span></div>
             <div className="loading-bar"><div className="loading-progress" /></div>
           </div>
         </div>

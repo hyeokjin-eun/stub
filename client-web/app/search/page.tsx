@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/Navigation'
 import CategoryFilter from '@/components/CategoryFilter'
+import DynamicTitle from '@/components/DynamicTitle'
 import { Search, X, Music, Trophy, Film, Drama, Palette, PartyPopper, Ticket, ChevronLeft, Heart } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { catalogGroupsApi, categoriesApi } from '@/lib/api'
@@ -32,16 +33,15 @@ export default function SearchPage() {
 
   const loadCategories = async () => {
     try {
-      const categoriesData = await categoriesApi.getAll()
+      const roots = await categoriesApi.getRoots()
       setCategories([
-        { id: 0, code: 'ALL', name: '전체', icon: '', color: '', created_at: '' },
-        ...categoriesData,
+        { id: 0, code: 'ALL', name: '전체', icon: '', color: '', depth: 0, parent_id: null, item_type: null, sort_order: 0, created_at: '' },
+        ...roots,
       ])
     } catch (error) {
       console.error('Failed to load categories:', error)
-      // Fallback to hardcoded categories
       setCategories([
-        { id: 0, code: 'ALL', name: '전체', icon: '', color: '', created_at: '' },
+        { id: 0, code: 'ALL', name: '전체', icon: '', color: '', depth: 0, parent_id: null, item_type: null, sort_order: 0, created_at: '' },
       ])
     }
   }
@@ -58,9 +58,8 @@ export default function SearchPage() {
     setIsSearching(true)
     try {
       const response = await catalogGroupsApi.getAll({ limit: 500 })
-      // Filter results by group name (카탈로그 그룹 이름으로 검색), 최상위 그룹 제외
+      // Filter results by group name (카탈로그 그룹 이름으로 검색)
       const filtered = response.data.filter((group) =>
-        !!group.parent_group_id &&
         group.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
       setSearchResults(filtered)
@@ -124,6 +123,7 @@ export default function SearchPage() {
 
   return (
     <>
+      <DynamicTitle pageName="검색" />
       <div className="app-container">
         {/* Header with Back Button and Search Bar */}
         <header className="app-header" style={{ gap: '8px', padding: '0 16px' }}>
@@ -285,11 +285,19 @@ function GroupCard({ group, onClick }: GroupCardProps) {
             style={{ background: getGlowColor(group.category?.code) }}
           />
           {group.thumbnail_url ? (
-            <img
-              src={group.thumbnail_url}
-              alt={group.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: 0.85 }}
-            />
+            group.thumbnail_url.endsWith('.mp4') ? (
+              <video
+                src={group.thumbnail_url}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: 0.85 }}
+                autoPlay loop muted playsInline
+              />
+            ) : (
+              <img
+                src={group.thumbnail_url}
+                alt={group.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: 0.85 }}
+              />
+            )
           ) : (
             <div className="group-emoji">{getCategoryIcon(group.category?.code || '')}</div>
           )}

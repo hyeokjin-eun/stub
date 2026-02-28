@@ -21,7 +21,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
         <link rel="icon" type="image/png" href="/favicon.png" />
         <title>OTBOOK</title>
-        <meta name="description" content="수집가들을 위한 오리지널 티켓 컬렉션 앱" />
+        <meta name="description" content="수집가들을 위한 컬렉션 앱" />
       </head>
       <body suppressHydrationWarning>
         <Providers>

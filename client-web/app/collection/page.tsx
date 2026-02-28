@@ -105,7 +105,7 @@ export default function CollectionPage() {
           </div>
           <div className="stat-item">
             <div className="stat-val">{totalItems}</div>
-            <div className="stat-lbl">총 티켓</div>
+            <div className="stat-lbl">총 수집품</div>
           </div>
           <div className="stat-item">
             <div className="stat-val" style={{ color: totalLikes > 0 ? '#e03a3a' : undefined }}>
@@ -170,7 +170,7 @@ function EmptyState() {
         아직 컬렉션이 없어요
       </div>
       <div style={{ fontSize: '13px', textAlign: 'center', lineHeight: 1.6 }}>
-        원하는 티켓들을 모아 나만의 컬렉션을 만들어보세요
+        원하는 수집품들을 모아 나만의 컬렉션을 만들어보세요
       </div>
     </div>
   )

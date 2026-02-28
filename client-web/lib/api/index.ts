@@ -15,6 +15,7 @@ export { collectionLikesApi } from './collectionLikes'
 export { notificationsApi } from './notifications'
 export type { NotificationItem, NotificationType } from './notifications'
 export { collectionCommentsApi } from './collectionComments'
+export { appSettingsApi } from './appSettings'
 
 // Export types
 export * from './types'

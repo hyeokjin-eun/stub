@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { User, Phone, Calendar, Sparkles } from 'lucide-react'
 import { usersApi } from '@/lib/api'
 
@@ -18,12 +18,20 @@ export default function OnboardingPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 로그인 체크
+  // 로그인 체크 및 백엔드 토큰 확인
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
+      return
     }
-  }, [status, router])
+
+    // 세션은 있지만 백엔드 토큰이 없으면 재로그인 필요
+    if (status === 'authenticated' && session && !(session as any)?.backendToken) {
+      console.warn('[Onboarding] No backend token found, signing out...')
+      // 자동으로 로그아웃 후 로그인 페이지로 이동
+      signOut({ callbackUrl: '/login' })
+    }
+  }, [status, session, router])
 
   // 세션에서 기본값 설정
   useEffect(() => {

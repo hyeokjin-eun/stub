@@ -6,6 +6,7 @@ import { ChevronLeft, Bell, Heart, UserPlus, MessageCircle, Megaphone, Trash2, C
 import { notificationsApi } from '@/lib/api'
 import type { NotificationItem, NotificationType } from '@/lib/api'
 import Navigation from '@/components/Navigation'
+import DynamicTitle from '@/components/DynamicTitle'
 
 // ─── 알림 타입별 아이콘/색상 ───────────────────────────────────────────────────
 
@@ -77,8 +78,10 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="app-container">
-      <main className="main-content" style={{ paddingBottom: 'calc(var(--nav-h) + 16px)' }}>
+    <>
+      <DynamicTitle pageName="알림" />
+      <div className="app-container">
+        <main className="main-content" style={{ paddingBottom: 'calc(var(--nav-h) + 16px)' }}>
 
         {/* TopBar */}
         <div style={{
@@ -139,9 +142,10 @@ export default function NotificationsPage() {
             ))}
           </div>
         )}
-      </main>
-      <Navigation />
-    </div>
+        </main>
+        <Navigation />
+      </div>
+    </>
   )
 }
 

@@ -2,312 +2,203 @@
 
 import { useState, useEffect } from 'react'
 import { adminApi, Category, CategoryUiConfig, ItemTypeUiConfig } from '@/lib/api'
-import BottomNav from '@/components/BottomNav'
-import {
-  Ticket, Tv, Layers, Gift,
-  Star, Eye, EyeOff, ChevronRight, ChevronDown,
-  ArrowUp, ArrowDown, RotateCcw,
-} from 'lucide-react'
+import { Ticket, Tv, Layers, Gift, Star, Eye, EyeOff, ChevronDown, ChevronRight, RotateCcw, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react'
 
-const ITEM_TYPE_TABS = [
+const ITEM_TYPES = [
   { type: 'TICKET',       label: '티켓',   icon: Ticket },
   { type: 'VIEWING',      label: '관람',   icon: Tv     },
   { type: 'TRADING_CARD', label: '카드',   icon: Layers },
   { type: 'GOODS',        label: '굿즈',   icon: Gift   },
 ]
 
-/* ─── Legend Item ─── */
-function LegendDot({ icon: Icon, color, label }: { icon: React.ElementType; color: string; label: string }) {
+function IconBtn({ icon: Icon, active, color, title, onClick }: { icon: React.ElementType; active: boolean; color: string; title: string; onClick: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--txt-muted)' }}>
-      <Icon size={12} color={color} />
-      {label}
-    </div>
-  )
-}
-
-/* ─── Icon Toggle Button ─── */
-function IconBtn({
-  icon: Icon, active, activeColor, title, onClick
-}: { icon: React.ElementType; active: boolean; activeColor: string; title: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      style={{
-        padding: 7, borderRadius: 8, border: 'none', cursor: 'pointer',
-        background: active ? `${activeColor}22` : 'transparent',
-        color: active ? activeColor : 'var(--txt-muted)',
-        transition: 'all .15s',
-      }}
-    >
-      <Icon size={15} fill={Icon === Star && active ? activeColor : 'none'} />
+    <button onClick={onClick} title={title} style={{ width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? `${color}20` : 'transparent', color: active ? color : 'var(--txt-3)', transition: 'all .12s' }}>
+      <Icon size={13} />
     </button>
   )
 }
 
-/* ─── Category Tree Item ─── */
-function CategoryItem({
-  category, depth, expanded, expandedIds,
-  onToggleExpand, onConfigChange, onResetConfig,
-}: {
-  category: Category; depth: number; expanded: boolean; expandedIds: Set<number>
-  onToggleExpand: (id: number) => void
-  onConfigChange: (id: number, field: string, value: boolean) => void
-  onResetConfig: (id: number) => void
+function CatRow({ cat, depth, expanded, expandedIds, onToggle, onCfg, onReset }: {
+  cat: Category; depth: number; expanded: boolean; expandedIds: Set<number>
+  onToggle: (id: number) => void
+  onCfg: (id: number, f: string, v: boolean) => void
+  onReset: (id: number) => void
 }) {
-  const cfg = category.ui_config ?? { is_default: false, skip_ui: false, auto_expand: false, show_in_filter: true }
-  const hasChildren = !!category.children?.length
+  const cfg = cat.ui_config ?? { is_default: false, skip_ui: false, auto_expand: false, show_in_filter: true }
+  const hasChildren = !!cat.children?.length
 
   return (
-    <div>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: `12px ${12 + depth * 20}px 12px 12px`,
-        borderBottom: '1px solid var(--border)',
-        background: depth === 0 ? 'var(--bg2)' : 'var(--card)',
-        transition: 'background .1s',
-      }}>
-        {/* Expand toggle */}
-        <div
-          style={{ width: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: hasChildren ? 'pointer' : 'default', color: 'var(--txt-muted)', flexShrink: 0 }}
-          onClick={() => hasChildren && onToggleExpand(category.id)}
-        >
-          {hasChildren
-            ? (expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />)
-            : <div style={{ width: 15 }} />}
-        </div>
-
-        {/* Color dot */}
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: category.color || 'var(--border)', flexShrink: 0 }} />
-
-        {/* Name + meta */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: depth === 0 ? 700 : 500, color: 'var(--txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {category.name}
+    <>
+      <tr style={{ background: depth === 0 ? 'var(--bg3)' : undefined }}>
+        <td className="no-label" style={{ paddingLeft: 14 + depth * 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 16, cursor: hasChildren ? 'pointer' : 'default', color: 'var(--txt-3)', display: 'flex', alignItems: 'center' }}
+              onClick={() => hasChildren && onToggle(cat.id)}>
+              {hasChildren ? (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : null}
+            </div>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: cat.color || 'var(--border2)', flexShrink: 0 }} />
           </div>
-          <div style={{ fontSize: 10, color: 'var(--txt-muted)', fontFamily: 'DM Mono' }}>
-            {category.code}
+        </td>
+        <td data-label="카테고리">
+          <div className="cell-name" style={{ fontSize: depth === 0 ? 13 : 12 }}>{cat.name}</div>
+          <div className="cell-sub" style={{ fontFamily: 'DM Mono' }}>{cat.code}</div>
+        </td>
+        <td data-label="설정">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconBtn icon={Star}        active={cfg.is_default}    color="#d4a84b" title="기본값"   onClick={() => onCfg(cat.id, 'is_default', !cfg.is_default)} />
+            <IconBtn icon={EyeOff}      active={cfg.skip_ui}       color="#e05252" title="UI 숨김" onClick={() => onCfg(cat.id, 'skip_ui', !cfg.skip_ui)} />
+            <IconBtn icon={ChevronDown} active={cfg.auto_expand}   color="#60a5fa" title="자동 펼침" onClick={() => onCfg(cat.id, 'auto_expand', !cfg.auto_expand)} />
+            <IconBtn icon={Eye}         active={cfg.show_in_filter} color="#4ade80" title="필터 표시" onClick={() => onCfg(cat.id, 'show_in_filter', !cfg.show_in_filter)} />
+            {cat.ui_config && (
+              <button onClick={() => onReset(cat.id)} title="초기화" style={{ width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--txt-3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <RotateCcw size={11} />
+              </button>
+            )}
           </div>
-        </div>
-
-        {/* Config toggles */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-          <IconBtn icon={Star}    active={cfg.is_default}    activeColor="#c9a84c" title="기본 선택" onClick={() => onConfigChange(category.id, 'is_default', !cfg.is_default)} />
-          <IconBtn icon={EyeOff}  active={cfg.skip_ui}       activeColor="#e03a3a" title="UI 숨김"   onClick={() => onConfigChange(category.id, 'skip_ui', !cfg.skip_ui)} />
-          <IconBtn icon={ChevronDown} active={cfg.auto_expand} activeColor="#4f9cf9" title="자동 펼침" onClick={() => onConfigChange(category.id, 'auto_expand', !cfg.auto_expand)} />
-          <IconBtn icon={Eye}     active={cfg.show_in_filter} activeColor="#2ecc71" title="필터 표시" onClick={() => onConfigChange(category.id, 'show_in_filter', !cfg.show_in_filter)} />
-          {category.ui_config && (
-            <button
-              onClick={() => onResetConfig(category.id)}
-              title="초기화"
-              style={{ padding: 7, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--txt-muted)' }}
-            >
-              <RotateCcw size={13} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Children */}
-      {hasChildren && expanded && category.children!.map(child => (
-        <CategoryItem
-          key={child.id} category={child} depth={depth + 1}
-          expanded={expandedIds.has(child.id)} expandedIds={expandedIds}
-          onToggleExpand={onToggleExpand}
-          onConfigChange={onConfigChange}
-          onResetConfig={onResetConfig}
-        />
+        </td>
+      </tr>
+      {hasChildren && expanded && cat.children!.map(child => (
+        <CatRow key={child.id} cat={child} depth={depth + 1} expanded={expandedIds.has(child.id)} expandedIds={expandedIds} onToggle={onToggle} onCfg={onCfg} onReset={onReset} />
       ))}
-    </div>
+    </>
   )
 }
 
-/* ─── Main Page ─── */
 export default function CategoriesPage() {
-  const [activeTab, setActiveTab]         = useState<'item-types' | 'categories'>('categories')
-  const [activeItemType, setActiveItemType] = useState('VIEWING')
-  const [categories, setCategories]       = useState<Category[]>([])
-  const [itemTypeConfigs, setItemTypeConfigs] = useState<ItemTypeUiConfig[]>([])
-  const [expandedIds, setExpandedIds]     = useState<Set<number>>(new Set())
-  const [loading, setLoading]             = useState(true)
+  const [tab, setTab]           = useState<'categories' | 'item-types'>('categories')
+  const [itemType, setItemType] = useState('VIEWING')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [itConfigs, setItConfigs]   = useState<ItemTypeUiConfig[]>([])
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (activeTab === 'categories') loadCategories()
-    else loadItemTypeConfigs()
-  }, [activeTab, activeItemType])
+  useEffect(() => { tab === 'categories' ? loadCats() : loadItConfigs() }, [tab, itemType])
 
-  const loadItemTypeConfigs = async () => {
-    setLoading(true)
-    try { setItemTypeConfigs(await adminApi.allItemTypeConfigs()) }
-    catch {}
-    finally { setLoading(false) }
-  }
+  const loadItConfigs = async () => { setLoading(true); try { setItConfigs(await adminApi.allItemTypeConfigs()) } catch {} finally { setLoading(false) } }
 
-  const loadCategories = async () => {
+  const loadCats = async () => {
     setLoading(true)
     try {
-      const data: Category[] = await adminApi.categoriesTree(activeItemType)
+      const data: Category[] = await adminApi.categoriesTree(itemType)
       setCategories(data)
-      setExpandedIds(new Set(data.map((c: Category) => c.id)))
-    } catch {}
-    finally { setLoading(false) }
+      setExpandedIds(new Set(data.map(c => c.id)))
+    } catch {} finally { setLoading(false) }
   }
 
-  const toggleExpand = (id: number) => {
-    setExpandedIds(prev => {
-      const s = new Set(prev)
-      s.has(id) ? s.delete(id) : s.add(id)
-      return s
-    })
-  }
+  const toggleExpand = (id: number) => setExpandedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
-  const handleConfigChange = async (categoryId: number, field: string, value: boolean) => {
-    try {
-      await adminApi.updateUiConfig(categoryId, { [field]: value })
-      loadCategories()
-    } catch (e: any) {
-      if (e.response?.status === 403) { alert('권한 없음'); window.location.href = '/login' }
-      else alert('업데이트 실패')
-    }
+  const handleCfg = async (catId: number, field: string, value: boolean) => {
+    try { await adminApi.updateUiConfig(catId, { [field]: value }); loadCats() }
+    catch (e: any) { if (e.response?.status === 403) { alert('권한 없음'); window.location.href = '/login' } }
   }
-
-  const handleResetConfig = async (categoryId: number) => {
+  const handleReset = async (catId: number) => {
     if (!confirm('초기화할까요?')) return
-    try { await adminApi.deleteUiConfig(categoryId); loadCategories() }
-    catch {}
+    try { await adminApi.deleteUiConfig(catId); loadCats() } catch {}
   }
-
-  const handleItemTypeConfigChange = async (itemType: string, field: string, value: boolean | number) => {
-    try {
-      await adminApi.updateItemTypeConfig(itemType, { [field]: value })
-      loadItemTypeConfigs()
-    } catch (e: any) {
-      if (e.response?.status === 403) { alert('권한 없음'); window.location.href = '/login' }
-    }
+  const handleItCfg = async (type: string, field: string, value: boolean | number) => {
+    try { await adminApi.updateItemTypeConfig(type, { [field]: value }); loadItConfigs() }
+    catch (e: any) { if (e.response?.status === 403) { alert('권한 없음'); window.location.href = '/login' } }
   }
 
   return (
-    <div className="admin-container">
-      <div className="admin-main">
-
-        {/* Header */}
-        <div style={{ padding: '16px 16px 10px', fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, letterSpacing: '.06em' }}>
-          카테고리 <span style={{ color: 'var(--gold)' }}>설정</span>
+    <div>
+      <div className="ph">
+        <div><h1>카테고리 설정</h1><div className="ph-sub">카테고리 UI 플래그 및 필터 설정</div></div>
+        <div className="ph-actions">
+          <button className="btn btn-ghost btn-sm" onClick={() => tab === 'categories' ? loadCats() : loadItConfigs()}>
+            <RefreshCw size={13} className={loading ? 'spin' : ''} />
+          </button>
         </div>
+      </div>
 
-        {/* Main Tab */}
-        <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px' }}>
-          {(['categories', 'item-types'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`a-btn ${activeTab === tab ? 'a-btn-primary' : 'a-btn-ghost'}`}
-              style={{ flex: 1, padding: '9px 12px', fontSize: 13 }}
-            >
-              {tab === 'categories' ? '카테고리' : '아이템 타입'}
+      {/* Main tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+        {(['categories', 'item-types'] as const).map(t => (
+          <button key={t} className={`btn ${tab === t ? 'btn-primary' : 'btn-ghost'} btn-sm`} onClick={() => setTab(t)}>
+            {t === 'categories' ? '카테고리 트리' : '아이템 타입'}
+          </button>
+        ))}
+      </div>
+
+      {/* Item type sub-tabs */}
+      {tab === 'categories' && (
+        <div className="tabs" style={{ marginBottom: 14 }}>
+          {ITEM_TYPES.map(({ type, label, icon: Icon }) => (
+            <button key={type} className={`tab ${itemType === type ? 'on' : ''}`} onClick={() => setItemType(type)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Icon size={11} />{label}
             </button>
           ))}
         </div>
+      )}
 
-        {/* Item Type Sub-tabs (categories 탭일 때) */}
-        {activeTab === 'categories' && (
-          <div style={{ overflowX: 'auto', display: 'flex', gap: 8, padding: '0 16px 12px', scrollbarWidth: 'none' }}>
-            {ITEM_TYPE_TABS.map(({ type, label, icon: Icon }) => (
-              <button
-                key={type}
-                onClick={() => setActiveItemType(type)}
-                style={{
-                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', border: '1px solid var(--border)',
-                  background: activeItemType === type ? 'var(--gold)' : 'var(--card)',
-                  color: activeItemType === type ? '#0a0800' : 'var(--txt-muted)',
-                }}
-              >
-                <Icon size={12} />
-                {label}
-              </button>
-            ))}
+      {/* Legend */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+        {[
+          { icon: Star,        color: '#d4a84b', label: '기본값' },
+          { icon: EyeOff,      color: '#e05252', label: 'UI 숨김' },
+          { icon: ChevronDown, color: '#60a5fa', label: '자동 펼침' },
+          { icon: Eye,         color: '#4ade80', label: '필터 표시' },
+        ].map(({ icon: Icon, color, label }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--txt-3)' }}>
+            <Icon size={11} color={color} />{label}
           </div>
-        )}
+        ))}
+      </div>
 
-        {/* Legend */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '0 16px 12px' }}>
-          <LegendDot icon={Star}        color="#c9a84c" label="기본 선택" />
-          <LegendDot icon={EyeOff}      color="#e03a3a" label="UI 숨김"   />
-          {activeTab === 'categories' ? (
-            <>
-              <LegendDot icon={ChevronDown} color="#4f9cf9" label="자동 펼침" />
-              <LegendDot icon={Eye}         color="#2ecc71" label="필터 표시" />
-            </>
-          ) : (
-            <LegendDot icon={Eye} color="#2ecc71" label="탭 표시" />
-          )}
-        </div>
-
-        {/* Content */}
+      <div className="panel">
         {loading ? (
-          <div className="a-empty"><div className="a-empty-title">로딩 중...</div></div>
-        ) : activeTab === 'item-types' ? (
-
-          /* ── Item Type Config ── */
-          <div style={{ margin: '0 16px' }}>
-            <div className="a-list">
-              {itemTypeConfigs.map(config => {
-                const tab = ITEM_TYPE_TABS.find(t => t.type === config.item_type)
-                if (!tab) return null
-                const Icon = tab.icon
+          <div className="empty"><div className="empty-title">로딩 중...</div></div>
+        ) : tab === 'item-types' ? (
+          <table className="tbl">
+            <thead><tr><th>타입</th><th>설정</th><th>순서</th></tr></thead>
+            <tbody>
+              {itConfigs.map(cfg => {
+                const t = ITEM_TYPES.find(t => t.type === cfg.item_type)
+                if (!t) return null
                 return (
-                  <div key={config.item_type} className="a-row" style={{ cursor: 'default' }}>
-                    <div className="a-row-icon"><Icon size={18} /></div>
-                    <div className="a-row-body">
-                      <div className="a-row-title">{tab.label}</div>
-                      <div className="a-row-sub" style={{ fontFamily: 'DM Mono' }}>{config.item_type}</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <IconBtn icon={Star}   active={config.is_default}  activeColor="#c9a84c" title="기본값" onClick={() => handleItemTypeConfigChange(config.item_type, 'is_default', !config.is_default)} />
-                      <IconBtn icon={EyeOff} active={config.skip_ui}     activeColor="#e03a3a" title="탭 숨김" onClick={() => handleItemTypeConfigChange(config.item_type, 'skip_ui', !config.skip_ui)} />
-                      <IconBtn icon={Eye}    active={config.show_in_tab} activeColor="#2ecc71" title="탭 표시" onClick={() => handleItemTypeConfigChange(config.item_type, 'show_in_tab', !config.show_in_tab)} />
-                      {/* Sort order */}
-                      <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 4 }}>
-                        <button onClick={() => handleItemTypeConfigChange(config.item_type, 'sort_order', config.sort_order - 1)}
-                          style={{ padding: '2px 4px', border: 'none', background: 'transparent', color: 'var(--txt-muted)', cursor: 'pointer' }}>
-                          <ArrowUp size={12} />
-                        </button>
-                        <button onClick={() => handleItemTypeConfigChange(config.item_type, 'sort_order', config.sort_order + 1)}
-                          style={{ padding: '2px 4px', border: 'none', background: 'transparent', color: 'var(--txt-muted)', cursor: 'pointer' }}>
-                          <ArrowDown size={12} />
-                        </button>
+                  <tr key={cfg.item_type} style={{ cursor: 'default' }}>
+                    <td data-label="타입">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <t.icon size={14} color="var(--txt-3)" />
+                        <div>
+                          <div className="cell-name">{t.label}</div>
+                          <div className="cell-sub" style={{ fontFamily: 'DM Mono' }}>{cfg.item_type}</div>
+                        </div>
                       </div>
-                      <span style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--txt-muted)', minWidth: 16, textAlign: 'center' }}>{config.sort_order}</span>
-                    </div>
-                  </div>
+                    </td>
+                    <td data-label="설정">
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        <IconBtn icon={Star}   active={cfg.is_default}  color="#d4a84b" title="기본값" onClick={() => handleItCfg(cfg.item_type, 'is_default', !cfg.is_default)} />
+                        <IconBtn icon={EyeOff} active={cfg.skip_ui}     color="#e05252" title="숨김"   onClick={() => handleItCfg(cfg.item_type, 'skip_ui', !cfg.skip_ui)} />
+                        <IconBtn icon={Eye}    active={cfg.show_in_tab} color="#4ade80" title="탭 표시" onClick={() => handleItCfg(cfg.item_type, 'show_in_tab', !cfg.show_in_tab)} />
+                      </div>
+                    </td>
+                    <td data-label="순서">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <button onClick={() => handleItCfg(cfg.item_type, 'sort_order', cfg.sort_order - 1)} style={{ padding: 4, border: 'none', background: 'transparent', color: 'var(--txt-3)', cursor: 'pointer' }}><ArrowUp size={12} /></button>
+                        <span className="cell-mono" style={{ minWidth: 20, textAlign: 'center' }}>{cfg.sort_order}</span>
+                        <button onClick={() => handleItCfg(cfg.item_type, 'sort_order', cfg.sort_order + 1)} style={{ padding: 4, border: 'none', background: 'transparent', color: 'var(--txt-3)', cursor: 'pointer' }}><ArrowDown size={12} /></button>
+                      </div>
+                    </td>
+                  </tr>
                 )
               })}
-            </div>
-          </div>
-
+            </tbody>
+          </table>
         ) : (
-
-          /* ── Category Tree ── */
-          <div style={{ margin: '0 16px' }}>
-            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-              {categories.map(rootCat => (
-                <CategoryItem
-                  key={rootCat.id} category={rootCat} depth={0}
-                  expanded={expandedIds.has(rootCat.id)} expandedIds={expandedIds}
-                  onToggleExpand={toggleExpand}
-                  onConfigChange={handleConfigChange}
-                  onResetConfig={handleResetConfig}
-                />
+          <table className="tbl">
+            <thead><tr><th style={{ width: 20 }}></th><th>카테고리</th><th>설정</th></tr></thead>
+            <tbody>
+              {categories.map(cat => (
+                <CatRow key={cat.id} cat={cat} depth={0} expanded={expandedIds.has(cat.id)} expandedIds={expandedIds}
+                  onToggle={toggleExpand} onCfg={handleCfg} onReset={handleReset} />
               ))}
-            </div>
-          </div>
-
+            </tbody>
+          </table>
         )}
       </div>
-      <BottomNav />
     </div>
   )
 }

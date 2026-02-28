@@ -74,7 +74,7 @@ export default function NewCollectionPage() {
     }
   }
 
-  const stepTitle = step === 1 ? '새 컬렉션' : '티켓 선택'
+  const stepTitle = step === 1 ? '새 컬렉션' : '수집품 선택'
 
   return (
     <div className="app-container">
@@ -147,9 +147,9 @@ export default function NewCollectionPage() {
               onClick={() => stubs.length === 0 ? router.push('/catalog') : undefined}
             >
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)', marginBottom: 2 }}>티켓 선택</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)', marginBottom: 2 }}>수집품 선택</div>
                 <div style={{ fontSize: 11, color: stubs.length === 0 ? 'var(--gold)' : 'var(--txt-muted)' }}>
-                  {stubs.length > 0 ? `보유 티켓 ${stubs.length}개에서 선택` : '보유 티켓이 없어요 — 카탈로그에서 추가하기 →'}
+                  {stubs.length > 0 ? `보유 수집품 ${stubs.length}개에서 선택` : '보유 수집품이 없어요 — 카탈로그에서 추가하기 →'}
                 </div>
               </div>
               <ChevronRight size={16} color={stubs.length === 0 ? 'var(--gold)' : 'var(--txt-muted)'} />
@@ -162,7 +162,7 @@ export default function NewCollectionPage() {
           <div style={{ padding: '16px 20px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 13, color: 'var(--txt-muted)' }}>
-                보유 티켓에서 담을 티켓을 선택하세요
+                보유 수집품에서 담을 아이템을 선택하세요
               </div>
               {selected.size > 0 && (
                 <span style={{
@@ -180,7 +180,7 @@ export default function NewCollectionPage() {
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="티켓 검색..."
+                placeholder="수집품 검색..."
               />
               {query && <X size={14} color="var(--txt-muted)" style={{ cursor: 'pointer' }} onClick={() => setQuery('')} />}
             </div>
@@ -240,7 +240,7 @@ export default function NewCollectionPage() {
               onClick={() => router.push('/catalog')}
               style={{ width: '100%', height: 48, fontSize: 15, justifyContent: 'center' }}
             >
-              카탈로그에서 티켓 추가하기 <ChevronRight size={18} />
+              카탈로그에서 수집품 추가하기 <ChevronRight size={18} />
             </button>
           ) : (
             <button
@@ -249,7 +249,7 @@ export default function NewCollectionPage() {
               disabled={!name.trim()}
               style={{ width: '100%', height: 48, fontSize: 15, justifyContent: 'center' }}
             >
-              다음 — 티켓 선택 <ChevronRight size={18} />
+              다음 — 수집품 선택 <ChevronRight size={18} />
             </button>
           )
         ) : (
@@ -326,9 +326,9 @@ function EmptyTickets() {
       padding: '40px 20px', textAlign: 'center',
       color: 'var(--txt-muted)', fontSize: 13, lineHeight: 1.8,
     }}>
-      <div style={{ fontSize: 36, marginBottom: 10 }}>🎫</div>
-      <div style={{ fontWeight: 600, color: 'var(--txt)', marginBottom: 4 }}>보유한 티켓이 없어요</div>
-      <div style={{ fontSize: 12 }}>카탈로그에서 티켓을 먼저 등록해보세요</div>
+      <div style={{ fontSize: 36, marginBottom: 10 }}>📦</div>
+      <div style={{ fontWeight: 600, color: 'var(--txt)', marginBottom: 4 }}>보유한 수집품이 없어요</div>
+      <div style={{ fontSize: 12 }}>카탈로그에서 수집품을 먼저 등록해보세요</div>
       <button
         className="btn-primary"
         style={{ marginTop: 16, fontSize: 13 }}

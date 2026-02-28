@@ -1,132 +1,166 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, X, User as UserIcon, Mail, Calendar } from 'lucide-react'
-import BottomNav from '@/components/BottomNav'
+import { Search, X, User as UserIcon, Mail, Calendar, Shield, RefreshCw } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 import { adminApi } from '@/lib/api'
 import type { User } from '@/lib/api'
 
-export default function UsersPage() {
-  const [users, setUsers]   = useState<User[]>([])
-  const [query, setQuery]   = useState('')
-  const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<User | null>(null)
+type UserWithRole = User & { role?: 'USER' | 'ADMIN' }
 
-  useEffect(() => {
+export default function UsersPage() {
+  const [users, setUsers]     = useState<UserWithRole[]>([])
+  const [query, setQuery]     = useState('')
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<UserWithRole | null>(null)
+  const [roleLoading, setRoleLoading] = useState(false)
+  const { show: toast, node: toastNode } = useToast()
+
+  const load = async () => {
+    setLoading(true)
     adminApi.users(1, 100)
-      .then(d => setUsers(d.data || []))
+      .then((d: { data?: UserWithRole[] }) => setUsers(d.data || []))
       .catch(() => setUsers([]))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
 
   const filtered = users.filter(u =>
     !query || u.nickname.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase())
   )
 
-  return (
-    <div className="admin-container">
-      <div className="admin-main" style={{ padding: '0 16px' }}>
-        <div style={{ padding: '16px 0 12px', fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, letterSpacing: '.06em' }}>
-          유저 <span style={{ color: 'var(--gold)' }}>관리</span>
-          <span style={{ fontSize: 12, fontFamily: 'DM Mono', color: 'var(--txt-muted)', marginLeft: 8 }}>
-            {users.length}명
-          </span>
-        </div>
+  const handleRoleChange = async (role: 'USER' | 'ADMIN') => {
+    if (!selected) return
+    setRoleLoading(true)
+    try {
+      await adminApi.setUserRole(selected.id, role)
+      const updated = { ...selected, role }
+      setUsers(prev => prev.map(u => u.id === selected.id ? updated : u))
+      setSelected(updated)
+      toast(`${selected.nickname}님을 ${role}로 변경했어요`)
+    } catch { toast('권한 변경 실패', 'error') }
+    finally { setRoleLoading(false) }
+  }
 
-        <div className="a-search">
-          <Search size={14} color="var(--txt-muted)" />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="닉네임 · 이메일 검색..." />
-          {query && <X size={14} color="var(--txt-muted)" style={{ cursor: 'pointer' }} onClick={() => setQuery('')} />}
+  return (
+    <div>
+      <div className="ph">
+        <div>
+          <h1>유저 관리</h1>
+          <div className="ph-sub">가입 유저 목록 및 권한 관리</div>
+        </div>
+        <div className="ph-actions">
+          <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCw size={13} className={loading ? 'spin' : ''} />새로고침</button>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="toolbar">
+          <div className="search" style={{ flex: 1 }}>
+            <Search size={13} color="var(--txt-3)" />
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="닉네임 · 이메일 검색..." />
+            {query && <X size={13} style={{ cursor: 'pointer', color: 'var(--txt-3)' }} onClick={() => setQuery('')} />}
+          </div>
+          <span className="panel-count">{filtered.length}명</span>
         </div>
 
         {loading ? (
-          <div className="a-empty"><div className="a-empty-title">로딩 중...</div></div>
+          <div className="empty"><div className="empty-title">로딩 중...</div></div>
         ) : filtered.length === 0 ? (
-          <div className="a-empty">
-            <div className="a-empty-title">유저가 없어요</div>
-          </div>
+          <div className="empty"><div className="empty-title">유저가 없어요</div></div>
         ) : (
-          <div className="a-list">
-            {filtered.map(u => (
-              <div key={u.id} className="a-row" onClick={() => setSelected(u)}>
-                <div style={{
-                  width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
-                  background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {u.avatar_url
-                    ? <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <UserIcon size={18} color="var(--txt-muted)" />
-                  }
-                </div>
-                <div className="a-row-body">
-                  <div className="a-row-title">{u.nickname}</div>
-                  <div className="a-row-sub">{u.email}</div>
-                </div>
-                <span className={`a-badge ${u.onboarding_completed ? 'green' : ''}`}>
-                  {u.onboarding_completed ? '활성' : '온보딩'}
-                </span>
-              </div>
-            ))}
-          </div>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th style={{ width: 46 }}></th>
+                <th>닉네임</th>
+                <th>이메일</th>
+                <th>권한</th>
+                <th>상태</th>
+                <th>가입일</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(u => (
+                <tr key={u.id} onClick={() => setSelected(u)}>
+                  <td className="no-label">
+                    <div className="tbl-thumb-box" style={{ borderRadius: '50%' }}>
+                      {u.avatar_url
+                        ? <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                        : <UserIcon size={15} color="var(--txt-3)" />}
+                    </div>
+                  </td>
+                  <td data-label="닉네임">
+                    <div className="cell-name">{u.nickname}</div>
+                    <div className="cell-sub">#{u.id}</div>
+                  </td>
+                  <td data-label="이메일"><span className="cell-mono">{u.email}</span></td>
+                  <td data-label="권한">
+                    {u.role === 'ADMIN'
+                      ? <span className="badge badge-gold"><Shield size={9} />ADMIN</span>
+                      : <span className="badge badge-muted">USER</span>}
+                  </td>
+                  <td data-label="상태">
+                    <span className={`badge ${u.onboarding_completed ? 'badge-green' : 'badge-blue'}`}>
+                      {u.onboarding_completed ? '활성' : '온보딩'}
+                    </span>
+                  </td>
+                  <td data-label="가입일"><span className="cell-mono">{new Date(u.created_at).toLocaleDateString('ko-KR')}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
-        {selected && (
-          <div className="a-backdrop" onClick={() => setSelected(null)}>
-            <div className="a-sheet" onClick={e => e.stopPropagation()}>
-              <div className="a-sheet-handle" />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: '50%', overflow: 'hidden',
-                  background: 'var(--border)', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+      {/* User detail modal */}
+      {selected && (
+        <div className="backdrop" onClick={() => setSelected(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-head">
+              <span className="modal-title">유저 상세</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setSelected(null)}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              {/* Profile */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20, padding: '4px 0' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg3)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {selected.avatar_url
                     ? <img src={selected.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <UserIcon size={24} color="var(--txt-muted)" />
-                  }
+                    : <UserIcon size={22} color="var(--txt-3)" />}
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{selected.nickname}</div>
-                  <div style={{ fontSize: 12, color: 'var(--txt-muted)', marginTop: 2 }}>ID: {selected.id}</div>
+                  <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>ID #{selected.id}</div>
                 </div>
-                <span className={`a-badge ${(selected as any).role === 'ADMIN' ? '' : 'green'}`} style={{ marginLeft: 'auto' }}>
-                  {(selected as any).role ?? 'USER'}
-                </span>
+                <span className={`badge ${selected.role === 'ADMIN' ? 'badge-gold' : 'badge-muted'}`}>{selected.role ?? 'USER'}</span>
               </div>
 
-              {[
-                { icon: Mail, label: '이메일', val: selected.email },
-                { icon: Calendar, label: '가입일', val: new Date(selected.created_at).toLocaleDateString('ko-KR') },
-              ].map(row => (
-                <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                  <row.icon size={15} color="var(--txt-muted)" />
-                  <span style={{ fontSize: 12, color: 'var(--txt-muted)', width: 50 }}>{row.label}</span>
-                  <span style={{ fontSize: 13 }}>{row.val}</span>
-                </div>
-              ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {[
+                  { icon: Mail,     label: '이메일', val: selected.email },
+                  { icon: Calendar, label: '가입일',  val: new Date(selected.created_at).toLocaleDateString('ko-KR') },
+                ].map(row => (
+                  <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                    <row.icon size={13} color="var(--txt-3)" />
+                    <span style={{ fontSize: 11, color: 'var(--txt-3)', width: 44, flexShrink: 0 }}>{row.label}</span>
+                    <span style={{ fontSize: 13 }}>{row.val}</span>
+                  </div>
+                ))}
+              </div>
 
               {selected.bio && (
-                <div style={{ marginTop: 14, fontSize: 13, color: 'var(--txt-muted)', lineHeight: 1.6 }}>
-                  {selected.bio}
-                </div>
+                <div style={{ marginTop: 10, padding: '10px 0', fontSize: 13, color: 'var(--txt-2)', lineHeight: 1.7 }}>{selected.bio}</div>
               )}
 
-              {/* Role 변경 */}
-              <div style={{ marginTop: 20 }}>
-                <div style={{ fontSize: 12, color: 'var(--txt-muted)', marginBottom: 10 }}>권한 변경</div>
+              <div style={{ marginTop: 18 }}>
+                <div className="lbl" style={{ marginBottom: 8 }}>권한 변경</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {(['USER', 'ADMIN'] as const).map(role => (
-                    <button
-                      key={role}
-                      className={`a-btn ${(selected as any).role === role ? 'a-btn-primary' : 'a-btn-ghost'}`}
-                      style={{ flex: 1, fontSize: 13 }}
-                      onClick={async () => {
-                        await adminApi.setUserRole(selected.id, role).catch(() => null)
-                        setUsers(prev => prev.map(u => u.id === selected.id ? { ...u, role } as any : u))
-                        setSelected(prev => prev ? { ...prev, role } as any : null)
-                      }}
-                    >
+                    <button key={role} className={`btn ${selected.role === role ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ flex: 1 }} disabled={roleLoading || selected.role === role}
+                      onClick={() => handleRoleChange(role)}>
                       {role}
                     </button>
                   ))}
@@ -134,9 +168,10 @@ export default function UsersPage() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-      <BottomNav />
+      {toastNode}
     </div>
   )
 }

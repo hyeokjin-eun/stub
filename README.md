@@ -376,6 +376,8 @@ server {
 - `POST /auth/google` - Google OAuth 로그인
 - `POST /auth/login` - 일반 로그인
 - `GET /auth/profile` - 프로필 조회
+- `POST /auth/admin/login` - 관리자 로그인 (Admin Only)
+- `PATCH /auth/users/:id/role` - 사용자 권한 변경 (Admin Only)
 
 ### 티켓 & 그룹
 - `GET /catalog-groups` - 그룹 목록
@@ -402,6 +404,7 @@ server {
 ### 알림
 - `GET /notifications` - 알림 목록
 - `PATCH /notifications/:id/read` - 읽음 처리
+- `POST /notifications/system` - 시스템 공지 전체 발송 (Admin Only)
 
 자세한 API 문서는 **[API 문서](.claude/guides/api-guide.md)** 참고.
 

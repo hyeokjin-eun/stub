@@ -1,14 +1,14 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { LayoutDashboard, Ticket, Users, Megaphone, Image } from 'lucide-react'
+import { LayoutDashboard, FolderHeart, Users, Settings, Image } from 'lucide-react'
 
 const NAV = [
-  { href: '/',         icon: LayoutDashboard, label: '대시보드' },
-  { href: '/tickets',  icon: Ticket,          label: '티켓' },
-  { href: '/users',    icon: Users,           label: '유저' },
-  { href: '/banners',  icon: Image,           label: '배너' },
-  { href: '/notify',   icon: Megaphone,       label: '공지' },
+  { href: '/',            icon: LayoutDashboard, label: '홈' },
+  { href: '/tickets',     icon: FolderHeart,     label: '수집품' },
+  { href: '/users',       icon: Users,           label: '유저' },
+  { href: '/banners',     icon: Image,           label: '배너' },
+  { href: '/categories',  icon: Settings,        label: '설정' },
 ]
 
 export default function BottomNav() {

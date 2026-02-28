@@ -1,5 +1,11 @@
 // API Response Types
 
+export type ItemType = 'TICKET' | 'VIEWING' | 'TRADING_CARD' | 'GOODS'
+
+export type TicketStatus = 'collected' | 'wish' | 'trading'
+export type ViewingStatus = 'watched' | 'watching' | 'plan'
+export type ItemStatus = TicketStatus | ViewingStatus
+
 export interface User {
   id: number
   email: string
@@ -15,13 +21,42 @@ export interface User {
   updated_at: string
 }
 
+export interface CategoryUiConfig {
+  id: number
+  category_id: number
+  is_default: boolean        // 기본값으로 자동 선택
+  skip_ui: boolean          // UI 단계 건너뛰기 (자동 선택 + 안 보임)
+  auto_expand: boolean      // 자동으로 하위 카테고리 펼침
+  show_in_filter: boolean   // 필터에 표시 여부
+  created_at: string
+  updated_at: string
+}
+
+export interface ItemTypeUiConfig {
+  id: number
+  item_type: ItemType
+  is_default: boolean       // 기본값으로 자동 선택
+  skip_ui: boolean         // 탭 건너뛰기 (자동 선택 + 안 보임)
+  show_in_tab: boolean     // 탭에 표시 여부
+  sort_order: number       // 탭 표시 순서
+  created_at: string
+  updated_at: string
+}
+
 export interface Category {
   id: number
   code: string
   name: string
   icon: string
   color: string
+  depth: number                   // 0=대분류, 1=중분류, 2=소분류
+  parent_id: number | null
+  item_type: ItemType | null      // 대분류에만 적용
+  sort_order: number
+  ui_config?: CategoryUiConfig | null  // UI/UX 설정 (별도 테이블)
   created_at: string
+  parent?: Category
+  children?: Category[]
 }
 
 export interface CatalogGroup {
@@ -31,14 +66,13 @@ export interface CatalogGroup {
   category_id: number
   creator_id: number
   is_official: boolean
-  color: string
-  icon: string
+  color: string | null
+  icon: string | null
   thumbnail_url: string | null
   is_public: boolean
   status: string
   view_count: number
   ticket_count: number
-  parent_group_id: number | null
   created_at: string
   updated_at: string
   category?: Category
@@ -48,7 +82,7 @@ export interface CatalogGroup {
 export interface CatalogItemMetadata {
   item_id: number
   metadata: {
-    type: 'ticket' | 'card' | 'goods'
+    type: ItemType
     [key: string]: any
   }
   created_at: string
@@ -59,10 +93,11 @@ export interface CatalogItem {
   id: number
   title: string
   description: string | null
+  item_type: ItemType
   category_id: number
   catalog_group_id: number | null
   owner_id: number
-  status: 'collected' | 'wish' | 'trading'
+  status: ItemStatus
   image_url: string | null
   thumbnail_url: string | null
   color: string | null
@@ -184,16 +219,18 @@ export interface LoginResponse {
 export interface CreateCatalogItemRequest {
   title: string
   description?: string
+  item_type: ItemType
   category_id: number
   catalog_group_id?: number
-  status?: 'collected' | 'wish' | 'trading'
+  status?: ItemStatus
   image_url?: string
   thumbnail_url?: string
   color?: string
   icon?: string
   is_public?: boolean
+  sort_order?: number
   metadata: {
-    type: 'ticket' | 'card' | 'goods'
+    type: ItemType
     [key: string]: any
   }
 }
@@ -201,16 +238,15 @@ export interface CreateCatalogItemRequest {
 export interface UpdateCatalogItemRequest {
   title?: string
   description?: string
-  category_id?: number
   catalog_group_id?: number
-  status?: 'collected' | 'wish' | 'trading'
+  status?: ItemStatus
   image_url?: string
   thumbnail_url?: string
   color?: string
   icon?: string
   is_public?: boolean
+  sort_order?: number
   metadata?: {
-    type?: 'ticket' | 'card' | 'goods'
     [key: string]: any
   }
 }
@@ -219,8 +255,8 @@ export interface CreateCatalogGroupRequest {
   name: string
   description?: string
   category_id: number
-  color: string
-  icon: string
+  color?: string
+  icon?: string
   thumbnail_url?: string
   is_public?: boolean
 }
@@ -238,4 +274,13 @@ export interface UploadResponse {
   url: string
   size: number
   mimetype: string
+}
+
+export interface AppSettings {
+  id: number
+  app_title: string
+  app_subtitle: string | null
+  app_description: string | null
+  created_at: string
+  updated_at: string
 }

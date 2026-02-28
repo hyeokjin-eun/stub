@@ -34,6 +34,15 @@ apiClient.interceptors.request.use(
       const token = sessionToken || localToken
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
+      } else {
+        // 디버깅: 토큰이 없으면 콘솔에 경고
+        if (session) {
+          console.warn('[API Client] No token found. Session:', {
+            hasSession: !!session,
+            hasBackendToken: !!(session as any)?.backendToken,
+            userId: (session as any)?.user?.id
+          })
+        }
       }
     }
     return config

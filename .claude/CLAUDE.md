@@ -861,6 +861,13 @@ server {
   - [x] TypeScript 타입 정의
 - [x] **문서 최신화** (2026-02-28)
   - [x] CLAUDE.md 업데이트 (구현 현황 반영)
+- [x] **관리자 권한 시스템** (2026-02-28)
+  - [x] User 엔티티 role 필드 추가 (USER/ADMIN)
+  - [x] AdminGuard 구현 (JWT + role 검증)
+  - [x] 어드민 전용 로그인 API (/auth/admin/login)
+  - [x] 사용자 권한 변경 API (PATCH /auth/users/:id/role)
+  - [x] Admin 페이지 권한 관리 UI
+  - [x] 로그아웃 기능
 
 ### 향후 개선 사항
 - [ ] 검색 기능 고도화 (Elasticsearch 도입 검토)

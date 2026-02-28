@@ -8,7 +8,8 @@ import Image from 'next/image'
 import Header from '@/components/Header'
 import Navigation from '@/components/Navigation'
 import CategoryFilter from '@/components/CategoryFilter'
-import { catalogItemsApi, likesApi, achievementsApi, usersApi, categoriesApi, stubsApi, followsApi, notificationsApi } from '@/lib/api'
+import DynamicTitle from '@/components/DynamicTitle'
+import { catalogItemsApi, likesApi, achievementsApi, usersApi, stubsApi, followsApi, notificationsApi, appSettingsApi } from '@/lib/api'
 import type { CatalogItem, Achievement, Category, Stub } from '@/lib/api/types'
 
 const getCategoryIcon = (code?: string) => {
@@ -28,13 +29,14 @@ export default function MyPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('tickets')
-  const [activeFilter, setActiveFilter] = useState('CINEMA')
+  const [activeFilter, setActiveFilter] = useState('ALL')
   const [myStubs, setMyStubs] = useState<Stub[]>([])
   const [likedTickets, setLikedTickets] = useState<CatalogItem[]>([])
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [appTitle, setAppTitle] = useState('STUB')
   const [stats, setStats] = useState({
     ticketCount: 0,
     followerCount: 120,
@@ -47,10 +49,20 @@ export default function MyPage() {
   }
 
   useEffect(() => {
+    loadAppSettings()
     if (session?.user?.id) {
       loadData()
     }
   }, [session])
+
+  const loadAppSettings = async () => {
+    try {
+      const settings = await appSettingsApi.getSettings()
+      setAppTitle(settings.app_title || 'STUB')
+    } catch (error) {
+      console.error('Failed to load app settings:', error)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -61,11 +73,10 @@ export default function MyPage() {
         throw new Error('User ID not found')
       }
 
-      const [stubsData, likedData, achievementsData, categoriesData, followersData, followingData, unread] = await Promise.all([
+      const [stubsData, likedData, achievementsData, followersData, followingData, unread] = await Promise.all([
         stubsApi.getMyStubs().catch(() => []),
         likesApi.getMyLikes().catch(() => []),
         achievementsApi.getAll(),
-        categoriesApi.getAll(),
         followsApi.getFollowers(userId).catch(() => []),
         followsApi.getFollowing(userId).catch(() => []),
         notificationsApi.getUnreadCount().catch(() => 0),
@@ -74,10 +85,6 @@ export default function MyPage() {
       setMyStubs(stubsData)
       setLikedTickets(likedData)
       setAchievements(achievementsData)
-      setCategories([
-        { id: 0, code: 'ALL', name: '전체', icon: '', color: '', created_at: '' },
-        ...categoriesData,
-      ])
       setUnreadCount(unread)
       setStats({
         ticketCount: stubsData.length,
@@ -112,12 +119,13 @@ export default function MyPage() {
 
   return (
     <>
+      <DynamicTitle pageName="마이페이지" />
       <div className="app-container">
         <main className="main-content" style={{ paddingBottom: 'calc(var(--nav-h) + 16px)' }}>
           {/* Header */}
           <header className="app-header">
             <div className="logo">
-              OT<span>BOOK</span>
+              {appTitle}<span>BOOK</span>
             </div>
             <div className="header-actions">
               <div className="icon-btn" style={{ position: 'relative' }} onClick={() => router.push('/notifications')}>
@@ -156,7 +164,7 @@ export default function MyPage() {
             <div className="stats-row" style={{ marginBottom: '14px' }}>
               <div className="stat-box">
                 <div className="stat-value">{stats.ticketCount}</div>
-                <div className="stat-label">티켓</div>
+                <div className="stat-label">수집품</div>
               </div>
               <div className="stat-box" style={{ cursor: 'pointer' }} onClick={() => router.push('/my/follows?tab=followers')}>
                 <div className="stat-value">
@@ -177,7 +185,7 @@ export default function MyPage() {
               className={`col-tab ${activeTab === 'tickets' ? 'active' : ''}`}
               onClick={() => setActiveTab('tickets')}
             >
-              내 티켓
+              내 수집품
             </div>
             <div
               className={`col-tab ${activeTab === 'likes' ? 'active' : ''}`}
@@ -222,7 +230,7 @@ export default function MyPage() {
 
               <div className="my-sort-row" style={{ paddingTop: '14px' }}>
                 <span className="my-count">
-                  티켓 <strong>{filteredStubs.length}</strong>장
+                  수집품 <strong>{filteredStubs.length}</strong>개
                 </span>
                 <div className="my-sort-btn">최신순</div>
               </div>
@@ -244,7 +252,7 @@ export default function MyPage() {
                   <div className="tg-add-icon">
                     <Plus size={28} />
                   </div>
-                  <div className="tg-add-lbl">티켓 추가</div>
+                  <div className="tg-add-lbl">수집품 추가</div>
                 </div>
               </div>
             </div>
@@ -390,7 +398,11 @@ function StubCard({ stub, number, onClick }: StubCardProps) {
     <div className={`tg-card tg-collected ${getCategoryColor(categoryCode)}`} onClick={onClick}>
       <div className="tg-inner">
         {imageUrl ? (
-          <img className="tg-image" src={imageUrl} alt={displayName} style={{ opacity: 0.85 }} />
+          imageUrl.endsWith('.mp4') ? (
+            <video className="tg-image" src={imageUrl} style={{ opacity: 0.85, objectFit: 'cover' }} autoPlay loop muted playsInline />
+          ) : (
+            <img className="tg-image" src={imageUrl} alt={displayName} style={{ opacity: 0.85 }} />
+          )
         ) : (
           <div className="tg-glow" style={{ background: getGlowColor(categoryCode) }} />
         )}
@@ -400,7 +412,7 @@ function StubCard({ stub, number, onClick }: StubCardProps) {
             <span className="tg-emoji">{getCategoryIcon(categoryCode)}</span>
           </div>
         )}
-        <div className="tg-name">{displayName || '알 수 없는 티켓'}</div>
+        <div className="tg-name">{displayName || '알 수 없는 수집품'}</div>
         <div className="tg-date">
           {new Date(stub.created_at).toLocaleDateString('ko-KR')}
         </div>
@@ -465,12 +477,11 @@ function TicketCard({ ticket, number, onClick }: TicketCardProps) {
     >
       <div className="tg-inner">
         {ticket.image_url && (
-          <img
-            className="tg-image"
-            src={ticket.image_url}
-            alt={displayName}
-            style={{ opacity: 0.85 }}
-          />
+          ticket.image_url.endsWith('.mp4') ? (
+            <video className="tg-image" src={ticket.image_url} style={{ opacity: 0.85, objectFit: 'cover' }} autoPlay loop muted playsInline />
+          ) : (
+            <img className="tg-image" src={ticket.image_url} alt={displayName} style={{ opacity: 0.85 }} />
+          )
         )}
 
         {!ticket.image_url && (
@@ -654,7 +665,7 @@ function SettingsPanel({ onDeleteAccount }: SettingsPanelProps) {
             letterSpacing: '.04em',
           }}
         >
-          수집가들을 위한 오리지널 티켓 앱
+          수집가들을 위한 컬렉션 앱
         </div>
       </div>
     </>

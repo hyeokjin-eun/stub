@@ -18,7 +18,7 @@ export default function QuickStats({
   }
 
   const stats = [
-    { value: formatNumber(totalTickets), label: '총 티켓 종류' },
+    { value: formatNumber(totalTickets), label: '총 수집품' },
     { value: formatNumber(totalCollections), label: '컬렉션' },
     { value: formatNumber(totalCollectors), label: '활성 컬렉터' },
   ]

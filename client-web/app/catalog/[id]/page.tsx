@@ -111,6 +111,13 @@ export default function CatalogDetailPage() {
 
   // 보유 등록 / 해제 후 ownedMap 갱신
   const handleToggleOwned = async (catalogItemId: number) => {
+    // 로그인 체크
+    if (!session) {
+      alert('로그인이 필요합니다.')
+      router.push('/login')
+      return
+    }
+
     const existingStubId = ownedMap[catalogItemId]
     if (existingStubId) {
       // 보유 해제
@@ -214,7 +221,7 @@ export default function CatalogDetailPage() {
             <div className="detail-meta-strip">
               <div className="dms-item">
                 <div className="dms-val">{tickets.length}</div>
-                <div className="dms-lbl">전체 티켓</div>
+                <div className="dms-lbl">전체 수집품</div>
               </div>
               <div className="dms-item">
                 <div className="dms-val" style={{ color: collectedCount > 0 ? 'var(--gold)' : undefined }}>
@@ -297,7 +304,7 @@ export default function CatalogDetailPage() {
                 {filteredTickets.length === 0 ? (
                   <div className="tg-empty">
                     <div className="tg-empty-icon">📁</div>
-                    <div className="tg-empty-txt">티켓이 없습니다</div>
+                  <div className="tg-empty-txt">수집품이 없습니다</div>
                   </div>
                 ) : (
                   paddedTickets.map((ticket, index) =>
@@ -356,12 +363,21 @@ function TicketCard({ ticket, group, isOwned, onClick }: TicketCardProps) {
     >
       <div className="tg-inner">
         {ticket.image_url ? (
-          <img
-            src={ticket.image_url}
-            alt={displayName}
-            className="tg-image"
-            style={{ opacity: isOwned ? 0.85 : 0.4 }}
-          />
+          ticket.image_url.endsWith('.mp4') ? (
+            <video
+              src={ticket.image_url}
+              className="tg-image"
+              style={{ opacity: isOwned ? 0.85 : 0.4, objectFit: 'cover' }}
+              autoPlay loop muted playsInline
+            />
+          ) : (
+            <img
+              src={ticket.image_url}
+              alt={displayName}
+              className="tg-image"
+              style={{ opacity: isOwned ? 0.85 : 0.4 }}
+            />
+          )
         ) : (
           <>
             <div className="tg-glow" style={{ background: getGlowColor(group.category?.code), opacity: isOwned ? 0.38 : 0.15 }} />
@@ -508,11 +524,20 @@ function TicketModal({ ticket, group, isOwned, onToggleOwned, onClose }: TicketM
         <div className="modal-ticket">
           <div className={`modal-ticket-hero ${getCategoryColor(group.category?.code)}`}>
             {ticket.image_url ? (
-              <img
-                src={ticket.image_url}
-                alt={displayName}
-                className={`modal-ticket-image${isOwned ? '' : ' locked'}`}
-              />
+              ticket.image_url.endsWith('.mp4') ? (
+                <video
+                  src={ticket.image_url}
+                  className={`modal-ticket-image${isOwned ? '' : ' locked'}`}
+                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                  autoPlay loop muted playsInline
+                />
+              ) : (
+                <img
+                  src={ticket.image_url}
+                  alt={displayName}
+                  className={`modal-ticket-image${isOwned ? '' : ' locked'}`}
+                />
+              )
             ) : (
               <>
                 <div className="modal-glow" style={{ background: getGlowColor(group.category?.code) }} />

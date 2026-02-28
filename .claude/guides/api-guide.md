@@ -64,6 +64,63 @@ Authorization: Bearer {token}
 }
 ```
 
+### 관리자 로그인 (Admin Only)
+
+```http
+POST /auth/admin/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin-password"
+}
+```
+
+**Response**:
+```json
+{
+  "access_token": "jwt-token",
+  "user": {
+    "id": 1,
+    "email": "admin@example.com",
+    "nickname": "관리자",
+    "role": "ADMIN"
+  }
+}
+```
+
+**Error (권한 없음)**:
+```json
+{
+  "statusCode": 401,
+  "message": "어드민 권한이 없습니다",
+  "error": "Unauthorized"
+}
+```
+
+### 사용자 권한 변경 (Admin Only)
+
+```http
+PATCH /auth/users/:id/role
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+
+{
+  "role": "ADMIN"
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true
+}
+```
+
+**가능한 role 값**:
+- `USER` - 일반 사용자
+- `ADMIN` - 관리자
+
 ---
 
 ## 사용자

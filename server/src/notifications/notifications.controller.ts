@@ -1,6 +1,7 @@
 import { Controller, Get, Patch, Delete, Post, Param, Query, ParseIntPipe, UseGuards, Req, Body } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { NotificationType } from '../database/entities/notification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../database/entities';
@@ -43,8 +44,9 @@ export class NotificationsController {
     return this.svc.remove(req.user.userId, id);
   }
 
-  /** 시스템 공지 전체 발송 (어드민용) */
+  /** 시스템 공지 전체 발송 (어드민 전용) */
   @Post('system')
+  @UseGuards(AdminGuard)
   async sendSystem(@Body() body: { message: string; targetUrl?: string }) {
     const users = await this.userRepo.find({ select: ['id'] });
     await Promise.all(

@@ -36,6 +36,12 @@ export interface Banner {
 
 // ── API helpers ────────────────────────────────────────────────────────────
 export const adminApi = {
+  // Auth
+  login: (email: string, password: string) =>
+    API.post('/auth/admin/login', { email, password }).then(r => r.data),
+
+  setUserRole: (id: number, role: 'USER' | 'ADMIN') =>
+    API.patch(`/auth/users/${id}/role`, { role }).then(r => r.data),
   // Stats
   stats: () => Promise.all([
     API.get('/users/count').then(r => r.data.total as number).catch(() => 0),

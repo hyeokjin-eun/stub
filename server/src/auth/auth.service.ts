@@ -132,11 +132,32 @@ export class AuthService {
 
   async findUserById(id: number) {
     const user = await this.userRepo.findOne({ where: { id } });
-    if (!user) {
-      return null;
-    }
-
+    if (!user) return null;
     const { password_hash, ...result } = user;
     return result;
+  }
+
+  /** 어드민 전용 로그인 — role = ADMIN 인 계정만 허용 */
+  async adminLogin(email: string, password: string) {
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user || !user.password_hash) {
+      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다');
+    }
+
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다');
+    if (user.role !== 'ADMIN') throw new UnauthorizedException('어드민 권한이 없습니다');
+
+    const payload = { sub: user.id, email: user.email, nickname: user.nickname, role: user.role };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: { id: user.id, email: user.email, nickname: user.nickname, role: user.role },
+    };
+  }
+
+  /** 특정 유저 role 변경 (ADMIN 전용) */
+  async setUserRole(targetId: number, role: 'USER' | 'ADMIN') {
+    await this.userRepo.update(targetId, { role });
+    return { ok: true };
   }
 }

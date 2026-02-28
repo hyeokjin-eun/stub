@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Ticket, Users, FolderHeart, LayoutGrid, ChevronRight, RefreshCw } from 'lucide-react'
+import { Ticket, Users, FolderHeart, LayoutGrid, ChevronRight, RefreshCw, LogOut } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 import { adminApi } from '@/lib/api'
 
@@ -19,6 +19,12 @@ export default function Dashboard() {
   }
 
   useEffect(() => { load() }, [])
+
+  const handleLogout = () => {
+    document.cookie = 'admin_token=; path=/; max-age=0'
+    localStorage.removeItem('admin_token')
+    router.push('/login')
+  }
 
   const STATS = [
     { label: '총 유저',     val: stats.users,       icon: Users,       href: '/users' },
@@ -42,8 +48,13 @@ export default function Dashboard() {
           <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, letterSpacing: '.08em' }}>
             OT<span style={{ color: 'var(--gold)' }}>BOOK</span> <span style={{ fontSize: 14, color: 'var(--txt-muted)', fontFamily: 'DM Mono' }}>ADMIN</span>
           </div>
-          <div onClick={load} style={{ cursor: 'pointer', color: 'var(--txt-muted)', padding: 6 }}>
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          <div style={{ display: 'flex', gap: 4 }}>
+            <div onClick={load} style={{ cursor: 'pointer', color: 'var(--txt-muted)', padding: 6 }}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </div>
+            <div onClick={handleLogout} style={{ cursor: 'pointer', color: 'var(--txt-muted)', padding: 6 }} title="로그아웃">
+              <LogOut size={16} />
+            </div>
           </div>
         </div>
 

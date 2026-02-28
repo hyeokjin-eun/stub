@@ -51,6 +51,9 @@ export class User {
   @Column({ type: 'boolean', default: false })
   onboarding_completed: boolean;
 
+  @Column({ type: 'varchar', length: 20, default: 'USER' })
+  role: 'USER' | 'ADMIN';
+
   // OAuth 지원
   @Column({ type: 'varchar', length: 50, nullable: true })
   oauth_provider: string; // 'google', 'kakao', 'naver'

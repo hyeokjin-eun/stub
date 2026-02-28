@@ -71,49 +71,70 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* 유저 상세 시트 */}
-      {selected && (
-        <div className="a-backdrop" onClick={() => setSelected(null)}>
-          <div className="a-sheet" onClick={e => e.stopPropagation()}>
-            <div className="a-sheet-handle" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%', overflow: 'hidden',
-                background: 'var(--border)', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {selected.avatar_url
-                  ? <img src={selected.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <UserIcon size={24} color="var(--txt-muted)" />
-                }
+        {selected && (
+          <div className="a-backdrop" onClick={() => setSelected(null)}>
+            <div className="a-sheet" onClick={e => e.stopPropagation()}>
+              <div className="a-sheet-handle" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: '50%', overflow: 'hidden',
+                  background: 'var(--border)', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {selected.avatar_url
+                    ? <img src={selected.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <UserIcon size={24} color="var(--txt-muted)" />
+                  }
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>{selected.nickname}</div>
+                  <div style={{ fontSize: 12, color: 'var(--txt-muted)', marginTop: 2 }}>ID: {selected.id}</div>
+                </div>
+                <span className={`a-badge ${(selected as any).role === 'ADMIN' ? '' : 'green'}`} style={{ marginLeft: 'auto' }}>
+                  {(selected as any).role ?? 'USER'}
+                </span>
               </div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{selected.nickname}</div>
-                <div style={{ fontSize: 12, color: 'var(--txt-muted)', marginTop: 2 }}>ID: {selected.id}</div>
-              </div>
-              <span className={`a-badge ${selected.onboarding_completed ? 'green' : ''}`} style={{ marginLeft: 'auto' }}>
-                {selected.onboarding_completed ? '활성' : '온보딩'}
-              </span>
-            </div>
 
-            {[
-              { icon: Mail, label: '이메일', val: selected.email },
-              { icon: Calendar, label: '가입일', val: new Date(selected.created_at).toLocaleDateString('ko-KR') },
-            ].map(row => (
-              <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                <row.icon size={15} color="var(--txt-muted)" />
-                <span style={{ fontSize: 12, color: 'var(--txt-muted)', width: 50 }}>{row.label}</span>
-                <span style={{ fontSize: 13 }}>{row.val}</span>
+              {[
+                { icon: Mail, label: '이메일', val: selected.email },
+                { icon: Calendar, label: '가입일', val: new Date(selected.created_at).toLocaleDateString('ko-KR') },
+              ].map(row => (
+                <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                  <row.icon size={15} color="var(--txt-muted)" />
+                  <span style={{ fontSize: 12, color: 'var(--txt-muted)', width: 50 }}>{row.label}</span>
+                  <span style={{ fontSize: 13 }}>{row.val}</span>
+                </div>
+              ))}
+
+              {selected.bio && (
+                <div style={{ marginTop: 14, fontSize: 13, color: 'var(--txt-muted)', lineHeight: 1.6 }}>
+                  {selected.bio}
+                </div>
+              )}
+
+              {/* Role 변경 */}
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 12, color: 'var(--txt-muted)', marginBottom: 10 }}>권한 변경</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['USER', 'ADMIN'] as const).map(role => (
+                    <button
+                      key={role}
+                      className={`a-btn ${(selected as any).role === role ? 'a-btn-primary' : 'a-btn-ghost'}`}
+                      style={{ flex: 1, fontSize: 13 }}
+                      onClick={async () => {
+                        await adminApi.setUserRole(selected.id, role).catch(() => null)
+                        setUsers(prev => prev.map(u => u.id === selected.id ? { ...u, role } as any : u))
+                        setSelected(prev => prev ? { ...prev, role } as any : null)
+                      }}
+                    >
+                      {role}
+                    </button>
+                  ))}
+                </div>
               </div>
-            ))}
-            {selected.bio && (
-              <div style={{ marginTop: 14, fontSize: 13, color: 'var(--txt-muted)', lineHeight: 1.6 }}>
-                {selected.bio}
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       <BottomNav />
     </div>

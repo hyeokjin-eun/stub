@@ -48,7 +48,6 @@ export class LikesService {
       where: { user_id: userId },
       relations: [
         'item',
-        'item.metadata',
         'item.owner',
         'item.category',
         'item.catalog_group',

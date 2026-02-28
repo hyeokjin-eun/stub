@@ -13,8 +13,6 @@ import { Category } from './category.entity';
 import { User } from './user.entity';
 import { CatalogItem } from './catalog-item.entity';
 
-
-
 @Entity('catalog_groups')
 export class CatalogGroup {
   @PrimaryGeneratedColumn()
@@ -27,7 +25,7 @@ export class CatalogGroup {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  // 분류
+  // 분류 - 소분류 category_id 참조
   @Column()
   @Index()
   category_id: number;
@@ -39,17 +37,17 @@ export class CatalogGroup {
 
   @Column({ type: 'boolean', default: false })
   @Index()
-  is_official: boolean; // 관리자 생성 여부
+  is_official: boolean;
 
   // 디자인
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   color: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   icon: string;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
-  thumbnail_url: string; // 그룹 대표 이미지
+  thumbnail_url: string;
 
   // 공개 설정
   @Column({ type: 'boolean', default: true })
@@ -63,7 +61,7 @@ export class CatalogGroup {
   view_count: number;
 
   @Column({ type: 'integer', default: 0 })
-  ticket_count: number; // 그룹 내 티켓 수 (캐시)
+  ticket_count: number;
 
   // 타임스탬프
   @CreateDateColumn()
@@ -71,20 +69,6 @@ export class CatalogGroup {
 
   @UpdateDateColumn()
   updated_at: Date;
-
-  // 계층 구조 (parent_group_id가 null이면 최상위 그룹)
-  @Column({ nullable: true })
-  @Index()
-  parent_group_id: number;
-
-  @ManyToOne(() => CatalogGroup, (group) => group.child_groups, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'parent_group_id' })
-  parent_group: CatalogGroup;
-
-  @OneToMany(() => CatalogGroup, (group) => group.parent_group)
-  child_groups: CatalogGroup[];
 
   // Relations
   @ManyToOne(() => Category, (category) => category.catalog_groups)

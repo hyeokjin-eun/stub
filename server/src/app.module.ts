@@ -18,6 +18,7 @@ import { CollectionsModule } from './collections/collections.module';
 import { CollectionLikesModule } from './collection-likes/collection-likes.module';
 import { CollectionCommentsModule } from './collection-comments/collection-comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AppSettingsModule } from './app-settings/app-settings.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     CollectionLikesModule,
     CollectionCommentsModule,
     NotificationsModule,
+    AppSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -27,7 +27,7 @@ export class CatalogItemMetadata {
   updated_at: Date;
 
   // Relations
-  @OneToOne(() => CatalogItem, (item) => item.metadata, {
+  @OneToOne(() => CatalogItem, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'item_id' })

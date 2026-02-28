@@ -12,7 +12,9 @@
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "migration:run": "npm run typeorm migration:run -- -d ./src/database/data-source.ts",
     "migration:revert": "npm run typeorm migration:revert -- -d ./src/database/data-source.ts",
-    "db:init": "npm run migration:run"
+    "db:init": "npm run migration:run",
+    "db:deploy": "./deploy-db.sh",
+    "db:seed": "sqlite3 otbook.sqlite < src/database/seed-data.sql"
   },
   "keywords": [],
   "author": "",

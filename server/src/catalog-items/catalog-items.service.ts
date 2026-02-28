@@ -2,26 +2,37 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   CatalogItem,
-  CatalogItemMetadata,
+  // CatalogItemMetadata,
   Category,
   CatalogGroup,
 } from '../database/entities';
-import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
+import { CreateCatalogItemDto, ItemType } from './dto/create-catalog-item.dto';
 import { UpdateCatalogItemDto } from './dto/update-catalog-item.dto';
+
+export interface FindAllItemsOptions {
+  page?: number;
+  limit?: number;
+  categoryId?: number;
+  catalogGroupId?: number;
+  ownerId?: number;
+  itemType?: ItemType;
+  status?: string;
+}
 
 @Injectable()
 export class CatalogItemsService {
   constructor(
     @InjectRepository(CatalogItem)
     private catalogItemRepo: Repository<CatalogItem>,
-    @InjectRepository(CatalogItemMetadata)
-    private metadataRepo: Repository<CatalogItemMetadata>,
+    // @InjectRepository(CatalogItemMetadata)
+    // private metadataRepo: Repository<CatalogItemMetadata>,
     @InjectRepository(Category)
     private categoryRepo: Repository<Category>,
     @InjectRepository(CatalogGroup)
@@ -32,66 +43,84 @@ export class CatalogItemsService {
   async create(userId: number, createDto: CreateCatalogItemDto) {
     const { metadata, ...itemData } = createDto;
 
-    // 아이템 생성
+    // 소분류(depth=2) 검증
+    const category = await this.categoryRepo.findOne({
+      where: { id: createDto.category_id },
+    });
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다');
+    }
+    if (category.depth !== 2) {
+      throw new BadRequestException('CatalogItem은 소분류(depth=2) 카테고리에만 연결할 수 있습니다');
+    }
+
+    // item_type과 카테고리의 item_type 일치 여부 확인
+    // (소분류 자체엔 item_type이 없으니 대분류까지 올라가서 확인)
+    const rootCategory = await this.findRootCategory(category);
+    if (rootCategory && rootCategory.item_type !== createDto.item_type) {
+      throw new BadRequestException(
+        `카테고리의 item_type(${rootCategory.item_type})과 요청한 item_type(${createDto.item_type})이 일치하지 않습니다`,
+      );
+    }
+
+    // VIEWING 타입의 기본 status = 'watched'
+    const defaultStatus = createDto.item_type === 'VIEWING' ? 'watched' : 'collected';
+
     const item = this.catalogItemRepo.create({
       ...itemData,
       owner_id: userId,
+      status: itemData.status ?? defaultStatus,
     });
 
     const savedItem = await this.catalogItemRepo.save(item);
 
-    // 메타데이터 생성
-    if (metadata) {
-      await this.metadataRepo.save({
-        item_id: savedItem.id,
-        metadata,
-      });
-    }
+    // TODO: 메타데이터 저장 로직 (필요시 구현)
+    // if (metadata) {
+    //   await this.metadataRepo.save({
+    //     item_id: savedItem.id,
+    //     metadata: { ...metadata, type: createDto.item_type },
+    //   });
+    // }
 
     // 이벤트 발행 (업적 체크)
-    this.eventEmitter.emit('ticket.created', { userId });
+    this.eventEmitter.emit('catalog_item.created', {
+      userId,
+      itemType: createDto.item_type,
+    });
 
     return this.findOne(savedItem.id);
   }
 
-  async findAll(
-    page: number = 1,
-    limit: number = 20,
-    filters?: {
-      category_id?: number;
-      catalog_group_id?: number;
-      owner_id?: number;
-      status?: string;
-    },
-  ) {
+  async findAll(options: FindAllItemsOptions = {}) {
+    const { page = 1, limit = 20, categoryId, catalogGroupId, ownerId, itemType, status } = options;
+
     const query = this.catalogItemRepo
       .createQueryBuilder('item')
-      .leftJoinAndSelect('item.metadata', 'metadata')
       .leftJoinAndSelect('item.owner', 'owner')
       .leftJoinAndSelect('item.category', 'category')
+      .leftJoinAndSelect('category.parent', 'midCategory')
+      .leftJoinAndSelect('midCategory.parent', 'rootCategory')
       .leftJoinAndSelect('item.catalog_group', 'catalog_group')
       .where('item.is_public = :isPublic', { isPublic: true });
 
-    if (filters?.category_id) {
-      query.andWhere('item.category_id = :categoryId', {
-        categoryId: filters.category_id,
-      });
+    if (categoryId) {
+      query.andWhere('item.category_id = :categoryId', { categoryId });
     }
 
-    if (filters?.catalog_group_id) {
-      query.andWhere('item.catalog_group_id = :groupId', {
-        groupId: filters.catalog_group_id,
-      });
+    if (catalogGroupId) {
+      query.andWhere('item.catalog_group_id = :catalogGroupId', { catalogGroupId });
     }
 
-    if (filters?.owner_id) {
-      query.andWhere('item.owner_id = :ownerId', {
-        ownerId: filters.owner_id,
-      });
+    if (ownerId) {
+      query.andWhere('item.owner_id = :ownerId', { ownerId });
     }
 
-    if (filters?.status) {
-      query.andWhere('item.status = :status', { status: filters.status });
+    if (itemType) {
+      query.andWhere('item.item_type = :itemType', { itemType });
+    }
+
+    if (status) {
+      query.andWhere('item.status = :status', { status });
     }
 
     const [items, total] = await query
@@ -113,48 +142,42 @@ export class CatalogItemsService {
   async findOne(id: number) {
     const item = await this.catalogItemRepo.findOne({
       where: { id },
-      relations: ['metadata', 'owner', 'category', 'catalog_group'],
+      relations: ['owner', 'category', 'category.parent', 'category.parent.parent', 'catalog_group'],
     });
 
     if (!item) {
       throw new NotFoundException('아이템을 찾을 수 없습니다');
     }
 
-    // 조회수 증가
     await this.catalogItemRepo.increment({ id }, 'view_count', 1);
 
     return this.sanitizeItem(item);
   }
 
-  async update(
-    id: number,
-    userId: number,
-    updateDto: UpdateCatalogItemDto,
-  ) {
+  async update(id: number, userId: number, updateDto: UpdateCatalogItemDto) {
     const item = await this.catalogItemRepo.findOne({
       where: { id },
-      relations: ['metadata'],
     });
 
     if (!item) {
       throw new NotFoundException('아이템을 찾을 수 없습니다');
     }
-
     if (item.owner_id !== userId) {
       throw new ForbiddenException('본인의 아이템만 수정할 수 있습니다');
     }
 
     const { metadata, ...itemData } = updateDto;
 
-    // 아이템 업데이트
     Object.assign(item, itemData);
     await this.catalogItemRepo.save(item);
 
-    // 메타데이터 업데이트
-    if (metadata && item.metadata) {
-      Object.assign(item.metadata.metadata, metadata);
-      await this.metadataRepo.save(item.metadata);
-    }
+    // TODO: 메타데이터 업데이트 로직 (필요시 구현)
+    // if (metadata) {
+    //   await this.metadataRepo.save({
+    //     item_id: item.id,
+    //     metadata,
+    //   });
+    // }
 
     return this.findOne(id);
   }
@@ -165,13 +188,55 @@ export class CatalogItemsService {
     if (!item) {
       throw new NotFoundException('아이템을 찾을 수 없습니다');
     }
-
     if (item.owner_id !== userId) {
       throw new ForbiddenException('본인의 아이템만 삭제할 수 있습니다');
     }
 
     await this.catalogItemRepo.remove(item);
     return { message: '아이템이 삭제되었습니다' };
+  }
+
+  // ── Admin: owner 체크 없이 수정/삭제 ─────────────────────────────
+
+  async adminUpdate(id: number, updateDto: UpdateCatalogItemDto) {
+    const item = await this.catalogItemRepo.findOne({ where: { id } });
+    if (!item) throw new NotFoundException('아이템을 찾을 수 없습니다');
+    const { metadata, ...itemData } = updateDto;
+    Object.assign(item, itemData);
+    await this.catalogItemRepo.save(item);
+    return this.findOne(id);
+  }
+
+  async adminRemove(id: number) {
+    const item = await this.catalogItemRepo.findOne({ where: { id } });
+    if (!item) throw new NotFoundException('아이템을 찾을 수 없습니다');
+
+    // catalog_group의 ticket_count 동기화
+    if (item.catalog_group_id) {
+      await this.catalogGroupRepo.decrement({ id: item.catalog_group_id }, 'ticket_count', 1);
+    }
+
+    await this.catalogItemRepo.remove(item);
+    return { message: '아이템이 삭제되었습니다' };
+  }
+
+  // ----------------------------------------------------------------
+  // private
+  // ----------------------------------------------------------------
+
+  private async findRootCategory(category: Category): Promise<Category | null> {
+    if (category.depth === 0) return category;
+
+    let current = category;
+    while (current.parent_id) {
+      const parent = await this.categoryRepo.findOne({
+        where: { id: current.parent_id },
+      });
+      if (!parent) break;
+      if (parent.depth === 0) return parent;
+      current = parent;
+    }
+    return null;
   }
 
   private sanitizeItem(item: any) {

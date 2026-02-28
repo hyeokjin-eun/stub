@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Request,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { LikesService } from './likes.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -35,9 +36,12 @@ export class LikesController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('check/:itemId')
   checkLiked(@Request() req, @Param('itemId', ParseIntPipe) itemId: number) {
+    // 로그인하지 않았으면 liked: false 반환
+    if (!req.user) {
+      return { liked: false };
+    }
     return this.likesService.checkLiked(req.user.id, itemId);
   }
 }

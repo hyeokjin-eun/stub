@@ -1,8 +1,10 @@
 export { User } from './user.entity';
 export { Category } from './category.entity';
+export { CategoryUiConfig } from './category-ui-config.entity';
+export { ItemTypeUiConfig } from './item-type-ui-config.entity';
 export { CatalogGroup } from './catalog-group.entity';
 export { CatalogItem } from './catalog-item.entity';
-export { CatalogItemMetadata } from './catalog-item-metadata.entity';
+// export { CatalogItemMetadata } from './catalog-item-metadata.entity'; // Temporarily disabled
 export { Like } from './like.entity';
 export { Follow } from './follow.entity';
 export { Collection } from './collection.entity';
@@ -12,3 +14,4 @@ export { Stub } from './stub.entity';
 export { UserAchievement } from './user-achievement.entity';
 export { SearchHistory } from './search-history.entity';
 export { Banner } from './banner.entity';
+export { AppSettings } from './app-settings.entity';

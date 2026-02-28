@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -12,9 +13,10 @@ import {
   Request,
 } from '@nestjs/common';
 import { CatalogItemsService } from './catalog-items.service';
-import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
+import { CreateCatalogItemDto, ItemType } from './dto/create-catalog-item.dto';
 import { UpdateCatalogItemDto } from './dto/update-catalog-item.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @Controller('catalog-items')
 export class CatalogItemsController {
@@ -26,6 +28,15 @@ export class CatalogItemsController {
     return this.catalogItemsService.create(req.user.id, createDto);
   }
 
+  /**
+   * GET /catalog-items
+   * ?page=1&limit=20
+   * ?category_id=33         ← 소분류 id
+   * ?catalog_group_id=1
+   * ?owner_id=1
+   * ?item_type=VIEWING
+   * ?status=watched
+   */
   @Get()
   findAll(
     @Query('page') page: string = '1',
@@ -33,19 +44,18 @@ export class CatalogItemsController {
     @Query('category_id') categoryId?: string,
     @Query('catalog_group_id') groupId?: string,
     @Query('owner_id') ownerId?: string,
+    @Query('item_type') itemType?: ItemType,
     @Query('status') status?: string,
   ) {
-    const filters: any = {};
-    if (categoryId) filters.category_id = parseInt(categoryId);
-    if (groupId) filters.catalog_group_id = parseInt(groupId);
-    if (ownerId) filters.owner_id = parseInt(ownerId);
-    if (status) filters.status = status;
-
-    return this.catalogItemsService.findAll(
-      parseInt(page),
-      parseInt(limit),
-      filters,
-    );
+    return this.catalogItemsService.findAll({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      categoryId: categoryId ? parseInt(categoryId) : undefined,
+      catalogGroupId: groupId ? parseInt(groupId) : undefined,
+      ownerId: ownerId ? parseInt(ownerId) : undefined,
+      itemType,
+      status,
+    });
   }
 
   @Get(':id')
@@ -67,5 +77,22 @@ export class CatalogItemsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.catalogItemsService.remove(id, req.user.id);
+  }
+
+  // ── Admin endpoints (owner 체크 bypass) ──────────────────────────
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Patch('admin/:id')
+  adminUpdate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateCatalogItemDto,
+  ) {
+    return this.catalogItemsService.adminUpdate(id, updateDto);
+  }
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Delete('admin/:id')
+  adminRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.catalogItemsService.adminRemove(id);
   }
 }

@@ -13,7 +13,7 @@ import {
 import { Category } from './category.entity';
 import { CatalogGroup } from './catalog-group.entity';
 import { User } from './user.entity';
-import { CatalogItemMetadata } from './catalog-item-metadata.entity';
+// import { CatalogItemMetadata } from './catalog-item-metadata.entity';
 import { Like } from './like.entity';
 import { CollectionItem } from './collection-item.entity';
 import { Stub } from './stub.entity';
@@ -99,10 +99,11 @@ export class CatalogItem {
   @JoinColumn({ name: 'owner_id' })
   owner: User;
 
-  @OneToOne(() => CatalogItemMetadata, (metadata) => metadata.item, {
-    cascade: true,
-  })
-  metadata: CatalogItemMetadata;
+  // @OneToOne(() => CatalogItemMetadata, (metadata) => metadata.item, {
+  //   cascade: true,
+  //   nullable: true,
+  // })
+  // metadata: CatalogItemMetadata | null;
 
   @OneToMany(() => Like, (like) => like.item)
   likes: Like[];

@@ -8,11 +8,14 @@
 
 | 구분 | 기술 | 버전 | 용도 |
 |------|------|------|------|
-| Framework | Next.js | 15+ | React 프레임워크 (App Router) |
+| Framework | Next.js | 15+ | React 프레임워크 (App Router, SSR/CSR) |
 | Language | TypeScript | 5+ | 타입 안정성 |
 | Styling | Tailwind CSS | 3.4+ | 유틸리티 기반 스타일링 |
 | Runtime | React | 19+ | UI 라이브러리 |
-| Build | Next.js Build | - | Static Site Generation |
+| Authentication | NextAuth.js | 4.24+ | Google OAuth 인증 |
+| HTTP Client | Axios | 1.13+ | API 통신 |
+| Icons | Lucide React | 0.575+ | 아이콘 라이브러리 |
+| Build | Next.js Build | - | SSR/CSR 빌드 |
 
 ---
 
@@ -21,68 +24,90 @@
 ```
 client-web/
 ├── app/                        # Next.js App Router
-│   ├── layout.tsx              # 루트 레이아웃
-│   ├── page.tsx                # 홈 페이지
-│   ├── globals.css             # 전역 스타일
+│   ├── layout.tsx              # 루트 레이아웃 ✅
+│   ├── page.tsx                # 홈 페이지 ✅
+│   ├── globals.css             # 전역 스타일 (시네마 테마) ✅
 │   │
-│   ├── search/                 # 검색 페이지
+│   ├── login/                  # 로그인 ✅
+│   │   └── page.tsx
+│   ├── onboarding/             # 온보딩 ✅
+│   │   └── page.tsx
+│   ├── search/                 # 검색 ✅
 │   │   └── page.tsx
 │   │
-│   ├── catalog/                # 카탈로그
+│   ├── catalog/                # 카탈로그 ✅
 │   │   ├── page.tsx            # 목록
 │   │   └── [id]/               # 상세 (Dynamic Route)
 │   │       └── page.tsx
 │   │
-│   └── my/                     # 마이 페이지
+│   ├── collection/             # 컬렉션 ✅
+│   │   ├── page.tsx            # 목록
+│   │   ├── new/                # 새 컬렉션
+│   │   │   └── page.tsx
+│   │   └── [id]/               # 상세
+│   │       └── page.tsx
+│   │
+│   ├── my/                     # 마이 페이지 ✅
+│   │   ├── page.tsx
+│   │   ├── edit/               # 프로필 편집
+│   │   │   └── page.tsx
+│   │   └── follows/            # 팔로우/팔로워
+│   │       └── page.tsx
+│   │
+│   ├── notifications/          # 알림 ✅
+│   │   └── page.tsx
+│   │
+│   ├── api/                    # API Routes
+│   │   └── auth/               # NextAuth
+│   │       └── [...nextauth]/
+│   │           └── route.ts
+│   │
+│   └── api-test/               # API 테스트 (개발용) ✅
 │       └── page.tsx
 │
 ├── components/                 # React 컴포넌트
-│   ├── common/                 # 공통 컴포넌트
-│   │   ├── Header.tsx
-│   │   ├── BottomNav.tsx
-│   │   └── Layout.tsx
-│   │
-│   ├── ui/                     # 기본 UI 컴포넌트
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Modal.tsx
-│   │   └── Input.tsx
-│   │
-│   └── features/               # 기능별 컴포넌트
-│       ├── ticket/             # 티켓 관련
-│       │   ├── TicketCard.tsx
-│       │   ├── TicketPager.tsx
-│       │   └── TicketModal.tsx
-│       │
-│       ├── catalog/            # 카탈로그 관련
-│       │   ├── GroupCard.tsx
-│       │   └── CategoryFilter.tsx
-│       │
-│       └── search/             # 검색 관련
-│           ├── SearchBar.tsx
-│           └── RecentSearches.tsx
+│   ├── Header.tsx              # 공통 헤더 ✅
+│   ├── Navigation.tsx          # 하단 네비게이션 ✅
+│   ├── Banner.tsx              # 배너 슬라이더 ✅
+│   ├── QuickStats.tsx          # 통계 표시 ✅
+│   ├── CategoryFilter.tsx      # 카테고리 필터 ✅
+│   ├── TicketCard.tsx          # 티켓 카드 ✅
+│   ├── LoadingOverlay.tsx      # 로딩 오버레이 ✅
+│   └── Providers.tsx           # NextAuth Provider ✅
 │
 ├── lib/                        # 유틸리티
-│   ├── data/                   # Mock 데이터
-│   │   ├── tickets.ts
-│   │   ├── groups.ts
-│   │   └── icons.ts
+│   ├── api/                    # API 클라이언트 ✅
+│   │   ├── client.ts           # Axios 인스턴스
+│   │   ├── types.ts            # 타입 정의
+│   │   ├── auth.ts             # 인증 API
+│   │   ├── categories.ts       # 카테고리 API
+│   │   ├── catalogItems.ts     # 티켓 API
+│   │   ├── catalogGroups.ts    # 그룹 API
+│   │   ├── likes.ts            # 좋아요 API
+│   │   ├── follows.ts          # 팔로우 API
+│   │   ├── users.ts            # 사용자 API
+│   │   ├── stubs.ts            # Stub API
+│   │   ├── collections.ts      # 컬렉션 API
+│   │   ├── banners.ts          # 배너 API
+│   │   ├── notifications.ts    # 알림 API
+│   │   └── index.ts            # Export
 │   │
-│   └── utils/                  # 헬퍼 함수
-│       ├── cn.ts               # className 유틸
-│       └── format.ts           # 포맷 함수
+│   ├── hooks/                  # Custom Hooks ✅
+│   │   └── useAuth.ts
+│   │
+│   └── mockData.ts             # Mock 데이터 ✅
+│
+├── middleware.ts               # NextAuth 미들웨어 ✅
 │
 ├── types/                      # TypeScript 타입
-│   ├── ticket.ts
-│   ├── group.ts
-│   └── user.ts
+│   └── next-auth.d.ts          # NextAuth 타입 확장 ✅
 │
 ├── public/                     # 정적 파일
 │   ├── images/
 │   └── fonts/
 │
-├── next.config.ts              # Next.js 설정
-├── tailwind.config.ts          # Tailwind 설정
+├── next.config.ts              # Next.js 설정 ✅
+├── tailwind.config.ts          # Tailwind 설정 ✅
 ├── tsconfig.json               # TypeScript 설정
 └── package.json
 ```
@@ -91,32 +116,76 @@ client-web/
 
 ## 페이지 라우팅
 
-### App Router 구조
+### 구현된 페이지 목록 (12개)
+
+| 경로 | 설명 | 상태 |
+|------|------|------|
+| `/` | 홈 (배너, 추천, 인기, 최근) | ✅ |
+| `/login` | Google OAuth 로그인 | ✅ |
+| `/onboarding` | 신규 사용자 온보딩 | ✅ |
+| `/search` | 검색 (실시간, 최근 검색어) | ✅ |
+| `/catalog` | 카탈로그 목록 | ✅ |
+| `/catalog/[id]` | 카탈로그 상세 (티켓 수집) | ✅ |
+| `/collection` | 컬렉션 목록 | ✅ |
+| `/collection/new` | 새 컬렉션 생성 | ✅ |
+| `/collection/[id]` | 컬렉션 상세 | ✅ |
+| `/my` | 마이 페이지 (티켓, 좋아요, 업적, 설정) | ✅ |
+| `/my/edit` | 프로필 편집 | ✅ |
+| `/my/follows` | 팔로우/팔로워 목록 | ✅ |
+| `/notifications` | 알림 목록 | ✅ |
+
+### 실제 구현 예시
 
 ```typescript
-// app/page.tsx → /
+// app/page.tsx → / (홈)
+'use client'
+import { useState, useEffect } from 'react'
+import { catalogGroupsApi, catalogItemsApi } from '@/lib/api'
+
 export default function HomePage() {
-  return <main>홈 페이지</main>
+  const [groups, setGroups] = useState([])
+
+  useEffect(() => {
+    catalogGroupsApi.getAll({ limit: 100 })
+      .then(data => setGroups(data.data))
+  }, [])
+
+  return (
+    <main>
+      <Banner />
+      <QuickStats />
+      {groups.map(group => (
+        <GroupCard key={group.id} group={group} />
+      ))}
+    </main>
+  )
 }
 
-// app/search/page.tsx → /search
-export default function SearchPage() {
-  return <main>검색 페이지</main>
-}
+// app/catalog/[id]/page.tsx → /catalog/:id (카탈로그 상세)
+'use client'
+import { useParams } from 'next/navigation'
+import { catalogGroupsApi, catalogItemsApi } from '@/lib/api'
 
-// app/catalog/page.tsx → /catalog
-export default function CatalogPage() {
-  return <main>카탈로그 목록</main>
-}
+export default function CatalogDetailPage() {
+  const params = useParams()
+  const id = Number(params.id)
 
-// app/catalog/[id]/page.tsx → /catalog/:id (Dynamic Route)
-export default function CatalogDetailPage({ params }: { params: { id: string } }) {
-  return <main>카탈로그 상세: {params.id}</main>
-}
+  const [group, setGroup] = useState(null)
+  const [tickets, setTickets] = useState([])
 
-// app/my/page.tsx → /my
-export default function MyPage() {
-  return <main>마이 페이지</main>
+  useEffect(() => {
+    catalogGroupsApi.getById(id).then(setGroup)
+    catalogItemsApi.getAll({ catalog_group_id: id }).then(data => setTickets(data.data))
+  }, [id])
+
+  return (
+    <main>
+      <h1>{group?.name}</h1>
+      {tickets.map(ticket => (
+        <TicketCard key={ticket.id} ticket={ticket} />
+      ))}
+    </main>
+  )
 }
 ```
 

@@ -1,16 +1,26 @@
 # OTBOOK - 배포 가이드
 
-> Next.js Static Export + nginx 배포 가이드
+> Next.js SSR/CSR + NestJS + PM2 + nginx 배포 가이드
 
 ---
 
 ## 배포 방식 개요
 
-OTBOOK은 **Next.js Static Export**를 사용하여 정적 HTML/CSS/JS 파일로 빌드하고, nginx를 통해 서빙합니다.
+OTBOOK은 **Next.js SSR/CSR**, **NestJS API 서버**, **PM2 프로세스 관리**, **nginx 리버스 프록시**를 사용합니다.
 
 **배포 흐름:**
 ```
-로컬 개발 → npm run build → out/ 폴더 생성 → nginx 서버로 복사 → 배포 완료
+로컬 개발 → 빌드 (Client/Admin/Server) → PM2로 프로세스 실행 → nginx 리버스 프록시 → 배포 완료
+```
+
+**아키텍처:**
+```
+인터넷
+  ↓
+nginx (포트 80) - 리버스 프록시
+  ├─→ Client-Web (localhost:3000) - Next.js SSR
+  ├─→ Admin (localhost:3001) - Next.js SSR
+  └─→ API Server (localhost:3002) - NestJS
 ```
 
 ---
@@ -26,26 +36,19 @@ npm run build
 
 **빌드 결과:**
 ```
-✓ Generating static pages (5/5)
+✓ Compiled successfully
+✓ Linting and checking validity of types
+✓ Creating an optimized production build
+✓ Collecting page data
+✓ Generating static pages
 ✓ Finalizing page optimization
-✓ Collecting build traces
-✓ Exported as static HTML to: out/
 ```
 
 **생성된 파일:**
 ```
-client-web/out/
-├── index.html              # /
-├── search.html             # /search
-├── catalog.html            # /catalog
-├── catalog/
-│   └── [id].html           # /catalog/:id
-├── my.html                 # /my
-├── _next/
-│   ├── static/
-│   │   ├── chunks/         # JS 번들
-│   │   └── css/            # CSS 파일
-│   └── ...
+client-web/.next/
+├── standalone/          # 독립 실행 파일
+├── static/              # 정적 에셋
 └── ...
 ```
 
@@ -60,17 +63,110 @@ npm run build
 
 **생성된 파일:**
 ```
-admin/out/
-├── index.html              # /admin
-├── tickets.html
-├── groups.html
-├── users.html
-└── _next/...
+admin/.next/
+├── standalone/
+├── static/
+└── ...
 ```
 
 ---
 
-## nginx 설정
+### 3. Server 빌드
+
+```bash
+cd server
+npm run build
+```
+
+**빌드 결과:**
+```
+✓ Compiling TypeScript
+✓ Build successful
+```
+
+**생성된 파일:**
+```
+server/dist/
+├── main.js              # 진입점
+├── app.module.js
+├── database/
+├── auth/
+└── ...
+```
+
+---
+
+## PM2 프로세스 관리
+
+### 1. PM2 설치
+
+```bash
+npm install -g pm2
+```
+
+### 2. 환경 변수 설정
+
+```bash
+# client-web/.env.production
+NEXT_PUBLIC_API_URL=http://localhost:3002
+NEXTAUTH_URL=https://otbook.example.com
+NEXTAUTH_SECRET=your-production-secret
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# admin/.env.production
+NEXT_PUBLIC_API_URL=http://localhost:3002
+
+# server/.env
+PORT=3002
+DATABASE_PATH=./database.sqlite
+```
+
+### 3. PM2로 프로세스 실행
+
+```bash
+# Client-Web 실행
+cd /path/to/project/client-web
+npm run build
+pm2 start npm --name "otbook-client" -- start
+
+# Admin 실행
+cd /path/to/project/admin
+npm run build
+pm2 start npm --name "otbook-admin" -- start
+
+# Server 실행
+cd /path/to/project/server
+npm run build
+pm2 start dist/main.js --name "otbook-server"
+```
+
+### 4. PM2 관리 명령어
+
+```bash
+# 상태 확인
+pm2 status
+
+# 로그 확인
+pm2 logs otbook-server
+pm2 logs otbook-client
+
+# 재시작
+pm2 restart otbook-server
+pm2 restart all
+
+# 중지
+pm2 stop otbook-server
+pm2 delete otbook-server
+
+# 시스템 부팅 시 자동 실행
+pm2 startup
+pm2 save
+```
+
+---
+
+## nginx 리버스 프록시 설정
 
 ### 1. nginx 설정 파일 생성
 
@@ -78,11 +174,11 @@ admin/out/
 sudo nano /etc/nginx/sites-available/otbook
 ```
 
-**기본 설정:**
+**리버스 프록시 설정:**
 ```nginx
 server {
     listen 80;
-    server_name otbook.example.com;  # 도메인으로 변경
+    server_name otbook.example.com;
 
     # 로그
     access_log /var/log/nginx/otbook_access.log;
@@ -90,30 +186,38 @@ server {
 
     # Client-Web (/)
     location / {
-        root /home/gurwls2399/client;
-        try_files $uri $uri.html $uri/ /index.html;
-        index index.html;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # API Server (/api)
+    location /api {
+        proxy_pass http://localhost:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Admin (/admin)
     location /admin {
-        alias /home/gurwls2399/admin;
-        try_files $uri $uri.html $uri/ /admin/index.html;
-        index index.html;
-    }
-
-    # Next.js 정적 파일 (JS, CSS)
-    location /_next/static/ {
-        alias /home/gurwls2399/client/_next/static/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # 이미지, 폰트 등 정적 파일
-    location ~* \.(jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        root /home/gurwls2399/client;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
     }
 
     # Gzip 압축
@@ -123,12 +227,45 @@ server {
     gzip_types text/plain text/css text/xml text/javascript
                application/x-javascript application/xml+rss
                application/javascript application/json;
+
+    # 클라이언트 요청 크기 제한 (이미지 업로드)
+    client_max_body_size 10M;
 }
 ```
 
----
+### 2. SSL/HTTPS 설정 (Let's Encrypt)
 
-### 2. 설정 활성화
+```bash
+# Certbot 설치
+sudo apt install certbot python3-certbot-nginx
+
+# SSL 인증서 발급
+sudo certbot --nginx -d otbook.example.com
+
+# 자동 갱신 설정 확인
+sudo certbot renew --dry-run
+```
+
+**자동 생성된 HTTPS 설정:**
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name otbook.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/otbook.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/otbook.example.com/privkey.pem;
+
+    # ... (위와 동일한 location 설정)
+}
+
+server {
+    listen 80;
+    server_name otbook.example.com;
+    return 301 https://$server_name$request_uri;
+}
+```
+
+### 3. 설정 활성화
 
 ```bash
 # 심볼릭 링크 생성
@@ -158,35 +295,42 @@ echo "🏗️  Building OTBOOK..."
 # Client-Web 빌드
 echo "📦 Building client-web..."
 cd client-web
+npm install
 npm run build
 cd ..
 
 # Admin 빌드
 echo "📦 Building admin..."
 cd admin
+npm install
 npm run build
 cd ..
 
-echo "🚀 Deploying to server..."
+# Server 빌드
+echo "📦 Building server..."
+cd server
+npm install
+npm run build
+cd ..
 
-# 서버에 배포 (rsync 사용)
-SERVER_USER="gurwls2399"
-SERVER_HOST="your-server-ip"
-SERVER_CLIENT_PATH="/home/gurwls2399/client"
-SERVER_ADMIN_PATH="/home/gurwls2399/admin"
+echo "🚀 Deploying with PM2..."
 
-# Client 배포
-rsync -avz --delete client-web/out/ ${SERVER_USER}@${SERVER_HOST}:${SERVER_CLIENT_PATH}/
+# PM2로 재시작 (이미 실행 중인 경우)
+pm2 restart otbook-client || pm2 start npm --name "otbook-client" -- start --prefix client-web
+pm2 restart otbook-admin || pm2 start npm --name "otbook-admin" -- start --prefix admin
+pm2 restart otbook-server || pm2 start server/dist/main.js --name "otbook-server"
 
-# Admin 배포
-rsync -avz --delete admin/out/ ${SERVER_USER}@${SERVER_HOST}:${SERVER_ADMIN_PATH}/
-
-echo "🔄 Reloading nginx..."
-ssh ${SERVER_USER}@${SERVER_HOST} 'sudo systemctl reload nginx'
+echo "💾 Saving PM2 configuration..."
+pm2 save
 
 echo "✅ Deployment complete!"
-echo "🌐 Client: http://otbook.example.com"
-echo "🔧 Admin: http://otbook.example.com/admin"
+echo "📊 PM2 Status:"
+pm2 status
+
+echo ""
+echo "🌐 Client: http://localhost:3000"
+echo "🔧 Admin: http://localhost:3001"
+echo "📡 API: http://localhost:3002"
 ```
 
 ---
@@ -207,23 +351,68 @@ chmod +x deploy.sh
 
 ---
 
-## 수동 배포
+## 원격 서버 배포
 
-rsync가 없거나 로컬 서버인 경우:
+### 1. Git을 사용한 배포
 
 ```bash
-# Client 배포
-cd client-web
-npm run build
-sudo cp -r out/* /home/gurwls2399/client/
+# 서버에 접속
+ssh user@your-server
 
-# Admin 배포
-cd ../admin
-npm run build
-sudo cp -r out/* /home/gurwls2399/admin/
+# 프로젝트 클론 또는 Pull
+cd /path/to/project
+git pull origin main
 
-# nginx 재시작
-sudo systemctl reload nginx
+# 배포 스크립트 실행
+./deploy.sh
+```
+
+### 2. rsync를 사용한 배포 (빌드 파일만)
+
+```bash
+#!/bin/bash
+# deploy-remote.sh
+
+set -e
+
+SERVER_USER="your-user"
+SERVER_HOST="your-server-ip"
+SERVER_PATH="/path/to/project"
+
+echo "🏗️  Building locally..."
+npm run build --prefix client-web
+npm run build --prefix admin
+npm run build --prefix server
+
+echo "📤 Uploading to server..."
+rsync -avz --delete client-web/.next/ ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/client-web/.next/
+rsync -avz --delete admin/.next/ ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/admin/.next/
+rsync -avz --delete server/dist/ ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/server/dist/
+
+echo "🔄 Restarting PM2 processes..."
+ssh ${SERVER_USER}@${SERVER_HOST} "cd ${SERVER_PATH} && pm2 restart all"
+
+echo "✅ Deployment complete!"
+```
+
+---
+
+## 수동 배포 (로컬 서버)
+
+```bash
+# 1. 빌드
+cd /path/to/project
+npm run build --prefix client-web
+npm run build --prefix admin
+npm run build --prefix server
+
+# 2. PM2 재시작
+pm2 restart otbook-client
+pm2 restart otbook-admin
+pm2 restart otbook-server
+
+# 또는 모두 재시작
+pm2 restart all
 ```
 
 ---

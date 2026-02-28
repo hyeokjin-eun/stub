@@ -22,19 +22,36 @@ npm run dev
 # → http://localhost:3001
 ```
 
+### 서버 실행
+
+```bash
+# Server (백엔드) 개발 서버
+cd server
+npm install
+npm run start:dev
+# → http://localhost:3002
+
+# 데이터베이스 마이그레이션 실행
+npm run migration:run
+```
+
 ### 빌드 및 배포
 
 ```bash
-# 정적 파일 빌드
-cd client-web && npm run build  # → out/ 폴더 생성
-cd admin && npm run build       # → out/ 폴더 생성
+# Client-Web 빌드
+cd client-web
+npm run build
+npm run start  # 프로덕션 서버 실행 (포트 3000)
 
-# nginx에 배포
-cp -r client-web/out/* /home/gurwls2399/client/
-cp -r admin/out/* /home/gurwls2399/admin/
+# Admin 빌드
+cd admin
+npm run build
+npm run start  # 프로덕션 서버 실행 (포트 3001)
 
-# nginx 재시작
-systemctl reload nginx
+# Server 빌드
+cd server
+npm run build
+npm run start:prod  # 프로덕션 서버 실행 (포트 3002)
 ```
 
 ---
@@ -72,48 +89,123 @@ stub/
 │
 ├── client-web/                 # 고객용 프론트엔드 (Next.js)
 │   ├── app/
-│   │   ├── layout.tsx          # 루트 레이아웃
-│   │   ├── page.tsx            # 홈 페이지
-│   │   ├── globals.css         # 전역 스타일 (시네마 테마)
-│   │   ├── (pages)/            # 페이지 라우트 (향후 추가)
-│   │   │   ├── search/
-│   │   │   ├── catalog/
-│   │   │   ├── catalog/[id]/
-│   │   │   └── my/
+│   │   ├── layout.tsx          # 루트 레이아웃 ✅
+│   │   ├── page.tsx            # 홈 페이지 ✅
+│   │   ├── globals.css         # 전역 스타일 (시네마 테마) ✅
+│   │   ├── login/              # 로그인 페이지 ✅
+│   │   ├── onboarding/         # 온보딩 페이지 ✅
+│   │   ├── search/             # 검색 페이지 ✅
+│   │   ├── catalog/            # 카탈로그 목록 ✅
+│   │   │   └── [id]/           # 카탈로그 상세 ✅
+│   │   ├── collection/         # 컬렉션 관련 ✅
+│   │   │   ├── page.tsx        # 컬렉션 목록
+│   │   │   ├── new/            # 새 컬렉션 생성
+│   │   │   └── [id]/           # 컬렉션 상세
+│   │   ├── my/                 # 마이 페이지 ✅
+│   │   │   ├── page.tsx        # 프로필 메인
+│   │   │   ├── edit/           # 프로필 편집
+│   │   │   └── follows/        # 팔로우/팔로워
+│   │   ├── notifications/      # 알림 페이지 ✅
+│   │   ├── api/                # API Routes
+│   │   │   └── auth/           # NextAuth 라우트 ✅
+│   │   └── api-test/           # API 테스트 페이지 ✅
 │   ├── components/             # React 컴포넌트
-│   │   ├── common/             # 공통 (Header, BottomNav)
-│   │   ├── ui/                 # UI 기본 (Button, Card, Modal)
-│   │   └── features/           # 기능별 컴포넌트
-│   │       ├── ticket/         # 티켓 카드, 페이저
-│   │       ├── catalog/        # 카탈로그 그룹 카드
-│   │       └── search/         # 검색 관련
+│   │   ├── Header.tsx          # 공통 헤더 ✅
+│   │   ├── Navigation.tsx      # 하단 네비게이션 ✅
+│   │   ├── Banner.tsx          # 배너 컴포넌트 ✅
+│   │   ├── QuickStats.tsx      # 통계 표시 ✅
+│   │   ├── CategoryFilter.tsx  # 카테고리 필터 ✅
+│   │   ├── TicketCard.tsx      # 티켓 카드 ✅
+│   │   ├── Providers.tsx       # Context Providers ✅
+│   │   └── LoadingOverlay.tsx  # 로딩 오버레이 ✅
 │   ├── lib/                    # 유틸리티
-│   │   ├── data/               # Mock 데이터 (catalog-data.ts)
-│   │   └── utils/              # 헬퍼 함수
-│   ├── public/                 # 정적 파일 (이미지, SVG)
-│   ├── next.config.ts          # Static Export 설정
-│   ├── tailwind.config.ts      # Tailwind 설정
+│   │   ├── api/                # API 클라이언트 ✅
+│   │   │   ├── client.ts       # Axios 인스턴스
+│   │   │   ├── types.ts        # 타입 정의
+│   │   │   ├── auth.ts         # 인증 API
+│   │   │   ├── categories.ts   # 카테고리 API
+│   │   │   ├── catalogItems.ts # 티켓 API
+│   │   │   ├── catalogGroups.ts # 그룹 API
+│   │   │   ├── likes.ts        # 좋아요 API
+│   │   │   ├── follows.ts      # 팔로우 API
+│   │   │   ├── users.ts        # 사용자 API
+│   │   │   ├── stubs.ts        # Stub API
+│   │   │   ├── collections.ts  # 컬렉션 API
+│   │   │   ├── banners.ts      # 배너 API
+│   │   │   └── notifications.ts # 알림 API
+│   │   ├── hooks/              # Custom Hooks ✅
+│   │   │   └── useAuth.ts
+│   │   └── mockData.ts         # Mock 데이터 ✅
+│   ├── middleware.ts           # NextAuth 미들웨어 ✅
+│   ├── types/                  # 타입 정의 ✅
+│   │   └── next-auth.d.ts
+│   ├── public/                 # 정적 파일
+│   ├── next.config.ts          # Next.js 설정 ✅
+│   ├── tailwind.config.ts      # Tailwind 설정 ✅
 │   ├── tsconfig.json
 │   └── package.json
 │
 ├── admin/                      # 어드민 프론트엔드 (Next.js)
 │   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx            # 대시보드
-│   │   ├── globals.css
-│   │   └── (pages)/            # 관리 페이지 (향후 추가)
-│   │       ├── tickets/
-│   │       ├── groups/
-│   │       └── users/
+│   │   ├── layout.tsx          # 루트 레이아웃 ✅
+│   │   ├── page.tsx            # 대시보드 ✅
+│   │   ├── globals.css         # 어드민 스타일 ✅
+│   │   ├── login/              # 어드민 로그인 ✅
+│   │   ├── users/              # 사용자 관리 ✅
+│   │   ├── tickets/            # 티켓 관리 ✅
+│   │   ├── banners/            # 배너 관리 ✅
+│   │   └── notify/             # 공지 발송 ✅
 │   ├── components/
+│   │   └── BottomNav.tsx       # 하단 네비게이션 ✅
+│   ├── lib/
+│   │   └── api.ts              # Admin API 클라이언트 ✅
+│   ├── middleware.ts           # 어드민 인증 미들웨어 ✅
 │   ├── public/
-│   ├── next.config.ts
-│   ├── tailwind.config.ts
+│   ├── next.config.ts          # Next.js 설정 ✅
+│   ├── tailwind.config.ts      # Tailwind 설정 ✅
 │   ├── tsconfig.json
 │   └── package.json
 │
-├── server/                     # 백엔드 (향후 개발)
-│   └── (NestJS 프로젝트)
+├── server/                     # 백엔드 (NestJS)
+│   ├── src/
+│   │   ├── main.ts             # 진입점 ✅
+│   │   ├── app.module.ts       # 루트 모듈 ✅
+│   │   ├── database/           # 데이터베이스 설정 ✅
+│   │   │   ├── data-source.ts  # TypeORM 설정
+│   │   │   ├── database.module.ts
+│   │   │   ├── entities/       # 엔티티 정의
+│   │   │   │   ├── user.entity.ts ✅
+│   │   │   │   ├── category.entity.ts ✅
+│   │   │   │   ├── catalog-group.entity.ts ✅
+│   │   │   │   ├── catalog-item.entity.ts ✅
+│   │   │   │   ├── stub.entity.ts ✅
+│   │   │   │   ├── collection.entity.ts ✅
+│   │   │   │   ├── like.entity.ts ✅
+│   │   │   │   ├── follow.entity.ts ✅
+│   │   │   │   ├── notification.entity.ts ✅
+│   │   │   │   └── banner.entity.ts ✅
+│   │   │   └── migrations/     # DB 마이그레이션 ✅
+│   │   ├── auth/               # 인증 모듈 ✅
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── auth.module.ts
+│   │   │   └── guards/         # 인증 가드
+│   │   │       └── admin.guard.ts ✅
+│   │   ├── users/              # 사용자 모듈 ✅
+│   │   ├── categories/         # 카테고리 모듈 ✅
+│   │   ├── catalog-groups/     # 그룹 모듈 ✅
+│   │   ├── catalog-items/      # 티켓 모듈 ✅
+│   │   ├── stubs/              # Stub 모듈 ✅
+│   │   ├── collections/        # 컬렉션 모듈 ✅
+│   │   ├── likes/              # 좋아요 모듈 ✅
+│   │   ├── follows/            # 팔로우 모듈 ✅
+│   │   ├── notifications/      # 알림 모듈 ✅
+│   │   ├── banners/            # 배너 모듈 ✅
+│   │   ├── achievements/       # 업적 모듈 ✅
+│   │   └── upload/             # 파일 업로드 모듈 ✅
+│   ├── database.sqlite         # SQLite DB 파일 ✅
+│   ├── package.json
+│   └── tsconfig.json
 │
 └── README.md
 ```
@@ -122,15 +214,17 @@ stub/
 
 ## 기술 스택
 
-| 영역 | 기술 | 버전 | 목적 |
-|------|------|------|------|
-| **Framework** | Next.js | 15+ | App Router, Static Export |
-| **Language** | TypeScript | 5+ | 타입 안정성 |
-| **Styling** | Tailwind CSS | 3.4+ | 유틸리티 기반 스타일링 |
-| **Runtime** | React | 19+ | UI 라이브러리 |
-| **Build** | Next.js Build | - | Static Site Generation |
-| **Backend** | NestJS (계획) | - | RESTful API |
-| **Database** | SQLite (계획) | - | 프로토타입 DB |
+| 영역 | 기술 | 버전 | 목적 | 상태 |
+|------|------|------|------|------|
+| **Framework** | Next.js | 15+ | App Router, SSR/CSR | ✅ 구현완료 |
+| **Language** | TypeScript | 5+ | 타입 안정성 | ✅ 구현완료 |
+| **Styling** | Tailwind CSS | 3.4+ | 유틸리티 기반 스타일링 | ✅ 구현완료 |
+| **Runtime** | React | 19+ | UI 라이브러리 | ✅ 구현완료 |
+| **Authentication** | NextAuth.js | 4.24+ | OAuth 인증 (Google) | ✅ 구현완료 |
+| **Backend** | NestJS | 11+ | RESTful API 서버 | ✅ 구현완료 |
+| **Database** | SQLite + TypeORM | 5+ / 0.3+ | 데이터 영속성 | ✅ 구현완료 |
+| **HTTP Client** | Axios | 1.13+ | API 통신 | ✅ 구현완료 |
+| **Icons** | Lucide React | 0.575+ | 아이콘 라이브러리 | ✅ 구현완료 |
 
 ---
 
@@ -188,222 +282,359 @@ body {
 
 ---
 
-## 컴포넌트 설계 (계획)
+## 컴포넌트 설계 (구현 완료)
 
-### 공통 컴포넌트 (`components/common/`)
-
-```typescript
-// Header.tsx
-export function Header() {
-  return (
-    <header className="fixed top-0 w-full bg-surface/80 backdrop-blur-sm">
-      {/* 로고, 알림, 검색 */}
-    </header>
-  )
-}
-
-// BottomNav.tsx
-export function BottomNav() {
-  return (
-    <nav className="fixed bottom-0 w-full h-16 bg-surface/80 backdrop-blur-sm">
-      {/* 홈, 검색, 카탈로그, 마이 */}
-    </nav>
-  )
-}
-```
-
-### UI 컴포넌트 (`components/ui/`)
+### 공통 컴포넌트 (`client-web/components/`)
 
 ```typescript
-// Card.tsx
-interface CardProps {
-  color: 'purple' | 'red' | 'teal' | 'navy' | 'amber' | 'green' | 'rose' | 'sky'
-  children: React.ReactNode
+// Header.tsx ✅
+// 로고, 알림, 검색 버튼 포함
+export default function Header()
+
+// Navigation.tsx ✅
+// 하단 네비게이션 (홈, 검색, 카탈로그, 마이)
+export default function Navigation()
+
+// Banner.tsx ✅
+// 홈 배너 슬라이더 (자동 순환)
+export default function Banner()
+
+// QuickStats.tsx ✅
+// 통계 표시 (총 티켓, 컬렉션, 컬렉터)
+interface QuickStatsProps {
+  totalTickets: number
+  totalCollections: number
+  totalCollectors: number
+  loading: boolean
 }
 
-// Modal.tsx
-interface ModalProps {
-  isOpen: boolean
-  onClose: () => void
-  children: React.ReactNode
+// CategoryFilter.tsx ✅
+// 카테고리 필터 칩 (가로 스크롤)
+interface CategoryFilterProps {
+  categories: Category[]
+  activeCategory: string
+  onCategoryChange: (code: string) => void
 }
 
-// Button.tsx
-interface ButtonProps {
-  variant: 'primary' | 'secondary' | 'ghost'
-  children: React.ReactNode
-  onClick?: () => void
-}
-```
-
-### 기능 컴포넌트 (`components/features/`)
-
-```typescript
-// ticket/TicketCard.tsx
+// TicketCard.tsx ✅
+// 티켓 카드 (그라디언트 배경, 등급 배지)
 interface TicketCardProps {
-  id: string
-  title: string
-  date: string
-  venue: string
-  color: string
-  icon: string
-  grade?: string
-  isCollected?: boolean
-  isLocked?: boolean
+  ticket: CatalogItem
+  number: string
+  onClick: () => void
 }
 
-// ticket/TicketPager.tsx
-// 2×2 슬라이드 페이저
-interface TicketPagerProps {
-  tickets: Ticket[]
-  filter: 'all' | 'collected' | 'uncollected'
-}
+// LoadingOverlay.tsx ✅
+// 전체 화면 로딩 오버레이
+export function LoadingOverlay()
 
-// catalog/GroupCard.tsx
-interface GroupCardProps {
-  id: string
-  name: string
-  category: string
-  color: string
-  icon: string
-  ticketCount: number
-}
+// Providers.tsx ✅
+// NextAuth SessionProvider 래퍼
+export function Providers({ children })
+```
+
+### Admin 컴포넌트 (`admin/components/`)
+
+```typescript
+// BottomNav.tsx ✅
+// 어드민 하단 네비게이션
+export default function BottomNav()
 ```
 
 ---
 
-## 페이지 라우팅 (계획)
+## 페이지 라우팅 (구현 완료)
 
-| 레거시 (otbook) | Next.js 라우트 | 설명 |
-|----------------|---------------|------|
-| `index.html` | `app/page.tsx` | 홈 페이지 |
-| `search.html` | `app/search/page.tsx` | 검색 |
-| `catalog.html` | `app/catalog/page.tsx` | 카탈로그 목록 |
-| `catalog-detail.html` | `app/catalog/[id]/page.tsx` | 카탈로그 상세 (Dynamic Route) |
-| `my.html` | `app/my/page.tsx` | 마이 페이지 |
-| `login.html` | `app/login/page.tsx` | 로그인 (향후) |
+### Client-Web (고객용)
+
+| 경로 | 설명 | 상태 |
+|------|------|------|
+| `/` | 홈 페이지 (추천, 트렌딩, 최근 등록) | ✅ |
+| `/login` | 로그인 (Google OAuth) | ✅ |
+| `/onboarding` | 온보딩 프로세스 | ✅ |
+| `/search` | 검색 페이지 | ✅ |
+| `/catalog` | 카탈로그 목록 (카테고리별 그룹) | ✅ |
+| `/catalog/[id]` | 카탈로그 상세 (티켓 목록, 2x2 슬라이더) | ✅ |
+| `/collection` | 컬렉션 목록 | ✅ |
+| `/collection/new` | 새 컬렉션 생성 | ✅ |
+| `/collection/[id]` | 컬렉션 상세 | ✅ |
+| `/my` | 마이 페이지 (티켓, 좋아요, 업적, 설정) | ✅ |
+| `/my/edit` | 프로필 편집 | ✅ |
+| `/my/follows` | 팔로우/팔로워 목록 | ✅ |
+| `/notifications` | 알림 목록 | ✅ |
+| `/api-test` | API 테스트 페이지 (개발용) | ✅ |
+
+### Admin (관리자용)
+
+| 경로 | 설명 | 상태 |
+|------|------|------|
+| `/` | 대시보드 (통계, 메뉴) | ✅ |
+| `/login` | 어드민 로그인 | ✅ |
+| `/users` | 사용자 관리 (목록, 권한 변경) | ✅ |
+| `/tickets` | 티켓 관리 (CRUD) | ✅ |
+| `/banners` | 배너 관리 (등록, 순서 조정) | ✅ |
+| `/notify` | 시스템 알림 전체 발송 | ✅ |
 
 **URL 예시:**
-- `/` → 홈
-- `/search?q=콘서트` → 검색 (쿼리 파라미터)
-- `/catalog?cat=MUSIC` → 카탈로그 (카테고리 필터)
-- `/catalog/seoul-jazz-2025` → 카탈로그 상세 (ID)
-- `/my` → 마이 페이지
+- Client: `http://localhost:3000/`
+- Client: `http://localhost:3000/catalog/49`
+- Admin: `http://localhost:3001/users`
 
 ---
 
 ## 데이터 구조 (TypeScript)
 
-### 타입 정의 예시 (`types/`)
+### API 타입 정의 (`client-web/lib/api/types.ts`) ✅
 
 ```typescript
-// types/ticket.ts
-export type TicketGrade = 'S' | 'A' | 'B' | 'C'
-export type TicketStatus = 'collected' | 'uncollected'
-
-export interface Ticket {
-  id: string
-  title: string
-  date: string
-  venue: string
-  category: string
-  color: string
-  icon: string
-  grade: TicketGrade
-  status: TicketStatus
-  seatInfo?: string
-  price?: number
-  likes: number
-}
-
-// types/group.ts
-export type Category = 'MUSIC' | 'SPORTS' | 'THEATER' | 'EXHIBITION' | 'CINEMA' | 'FESTIVAL'
-
-export interface CatalogGroup {
-  id: string
-  name: string
-  category: Category
-  color: string
-  icon: string
-  description: string
-  tickets: Ticket[]
-  totalTickets: number
-  collectedTickets: number
-  collectors: number
-  likes: number
-}
-
-// types/user.ts
+// 사용자
 export interface User {
-  id: string
+  id: number
+  email: string
   nickname: string
-  bio: string
-  avatar: string
-  followers: number
-  following: number
-  ticketCount: number
+  bio?: string
+  avatar_url?: string
+  phone?: string
+  birth_date?: string
+  onboarding_completed: boolean
+  role?: 'USER' | 'ADMIN'
+  oauth_provider?: string
+  oauth_id?: string
+  created_at: string
+  updated_at: string
+}
+
+// 카테고리
+export interface Category {
+  id: number
+  code: string        // 'MUSIC', 'SPORTS', 'CINEMA', etc.
+  name: string
+  icon: string
+  color: string
+  created_at: string
+}
+
+// 카탈로그 그룹
+export interface CatalogGroup {
+  id: number
+  parent_group_id?: number
+  category_id: number
+  category?: Category
+  name: string
+  description?: string
+  thumbnail_url?: string
+  color?: string
+  view_count: number
+  ticket_count: number
+  created_at: string
+  updated_at: string
+}
+
+// 카탈로그 아이템 (티켓)
+export interface CatalogItem {
+  id: number
+  catalog_group_id: number
+  catalog_group?: CatalogGroup
+  category_id: number
+  category?: Category
+  title: string
+  description?: string
+  image_url?: string
+  metadata?: CatalogItemMetadata
+  color?: string
+  created_at: string
+  updated_at: string
+}
+
+// Stub (사용자가 수집한 티켓)
+export interface Stub {
+  id: number
+  user_id: number
+  catalog_item_id: number
+  catalog_item?: CatalogItem
+  image_url?: string
+  status: 'collected' | 'uncollected'
+  created_at: string
+  updated_at: string
+}
+
+// 컬렉션
+export interface Collection {
+  id: number
+  user_id: number
+  user?: User
+  title: string
+  description?: string
+  is_public: boolean
+  view_count: number
+  like_count: number
+  created_at: string
+  updated_at: string
+}
+
+// 좋아요
+export interface Like {
+  id: number
+  user_id: number
+  catalog_item_id: number
+  created_at: string
+}
+
+// 팔로우
+export interface Follow {
+  id: number
+  follower_id: number
+  following_id: number
+  created_at: string
+}
+
+// 알림
+export interface Notification {
+  id: number
+  user_id: number
+  type: 'LIKE' | 'FOLLOW' | 'COMMENT' | 'SYSTEM'
+  title: string
+  content: string
+  link?: string
+  is_read: boolean
+  created_at: string
+}
+
+// 업적
+export interface Achievement {
+  code: string
+  name: string
+  description: string
+  icon: string
+  achieved: boolean
+}
+
+// 배너
+export interface Banner {
+  id: number
+  title: string
+  image_url: string
+  link_url?: string
+  order_index: number
+  is_active: boolean
+  created_at: string
 }
 ```
 
+### 데이터베이스 엔티티 (`server/src/database/entities/`) ✅
+
+- `user.entity.ts` - 사용자
+- `category.entity.ts` - 카테고리
+- `catalog-group.entity.ts` - 카탈로그 그룹
+- `catalog-item.entity.ts` - 티켓
+- `stub.entity.ts` - 수집 티켓
+- `collection.entity.ts` - 컬렉션
+- `like.entity.ts` - 좋아요
+- `follow.entity.ts` - 팔로우
+- `notification.entity.ts` - 알림
+- `banner.entity.ts` - 배너
+- `user-achievement.entity.ts` - 사용자 업적
+
 ---
 
-## 레거시 마이그레이션 체크리스트
+## 구현 완료 항목
 
-### otbook → Next.js 포팅 작업
+### Frontend (Client-Web)
 
 #### 공통 작업
-- [ ] CSS 변수 → Tailwind CSS 클래스로 변환
-- [ ] SVG 아이콘 → React 컴포넌트화
-- [ ] Mock 데이터 → TypeScript 타입 정의
-- [ ] 애니메이션 → Tailwind 유틸리티 또는 Framer Motion
+- [x] CSS 변수 → globals.css 적용
+- [x] Lucide React 아이콘 라이브러리 적용
+- [x] TypeScript 타입 정의 완료
+- [x] CSS 애니메이션 (fade-in, slide-up 등)
 
 #### 페이지별 작업
 
-**홈 (index.html → app/page.tsx)**
-- [ ] 배너 슬라이더 컴포넌트
-- [ ] Quick Stats 섹션
-- [ ] 카테고리 필터 칩
-- [ ] 추천 컬렉션 가로 스크롤
-- [ ] 지금 인기 TOP5 리스트
-- [ ] 주목할 컬렉터 가로 스크롤
-- [ ] 최근 등록 2열 그리드
+**홈 (`app/page.tsx`)** ✅
+- [x] 배너 슬라이더 컴포넌트 (자동 순환)
+- [x] Quick Stats 섹션 (총 티켓, 컬렉션, 컬렉터)
+- [x] 카테고리 필터 칩 (현재 영화 카테고리 고정)
+- [x] 추천 컬렉션 가로 스크롤
+- [x] 지금 인기 TOP5 리스트 (view_count 기준)
+- [x] 최근 등록 2열 그리드 (created_at 기준)
+- [x] API 연동 (categories, catalogItems, catalogGroups)
 
-**검색 (search.html → app/search/page.tsx)**
-- [ ] 검색바 (실시간 입력)
-- [ ] 카테고리 필터 칩
-- [ ] 최근 검색어 (로컬 스토리지)
-- [ ] 인기 검색어 TOP10
-- [ ] 카테고리별 탐색 카드
-- [ ] 검색 결과 그리드
+**검색 (`app/search/page.tsx`)** ✅
+- [x] 검색바 (실시간 입력)
+- [x] 카테고리 필터 칩
+- [x] 최근 검색어 (로컬 스토리지)
+- [x] 인기 검색어 API 연동
+- [x] 카테고리별 탐색 카드
+- [x] 검색 결과 그리드
 
-**카탈로그 (catalog.html → app/catalog/page.tsx)**
-- [ ] Stats Strip
-- [ ] 카테고리 필터 탭
-- [ ] 그룹 카드 그리드 (2열)
-- [ ] 카테고리별 섹션 헤더
-- [ ] URL 쿼리 파라미터로 필터 연동
+**카탈로그 (`app/catalog/page.tsx`)** ✅
+- [x] Stats Strip (총 티켓, 그룹, 내 수집, 달성률)
+- [x] 카테고리 필터 탭 (현재 영화 카테고리 고정)
+- [x] 그룹 카드 그리드 (2열)
+- [x] 정렬 옵션 (인기순, 최신순, 번호순)
+- [x] 카테고리별 섹션 헤더
+- [x] 세션 기반 내 수집 현황 표시
 
-**카탈로그 상세 (catalog-detail.html → app/catalog/[id]/page.tsx)**
-- [ ] Hero 영역 (SVG + 그라디언트)
-- [ ] Meta Strip
-- [ ] 티켓 탭 (전체/수집완료/미수집)
-- [ ] 2×2 티켓 페이저 (슬라이드 애니메이션)
-- [ ] 티켓 상세 모달
-- [ ] 터치 스와이프 지원
+**카탈로그 상세 (`app/catalog/[id]/page.tsx`)** ✅
+- [x] Hero 영역 (썸네일 + 그라디언트)
+- [x] Meta Strip (티켓 수, 조회수, 좋아요)
+- [x] 티켓 탭 (전체/수집완료/미수집)
+- [x] 2×2 티켓 그리드 (페이지네이션)
+- [x] 티켓 상세 모달
+- [x] 티켓 수집/해제 기능
+- [x] 이미지 업로드 (multer)
 
-**마이 페이지 (my.html → app/my/page.tsx)**
-- [ ] 프로필 헤더
-- [ ] 컬렉션 탭 전환
-- [ ] 내 티켓 그리드
-- [ ] 좋아요한 티켓
-- [ ] 업적 시스템 (SVG 아이콘)
-- [ ] 설정 메뉴
+**마이 페이지 (`app/my/page.tsx`)** ✅
+- [x] 프로필 헤더 (아바타, 닉네임, 바이오)
+- [x] 통계 (티켓, 팔로워, 팔로잉)
+- [x] 컬렉션 탭 전환 (내 티켓, 좋아요, 업적, 설정)
+- [x] 내 티켓 그리드 (Stub 기반)
+- [x] 좋아요한 티켓 그리드
+- [x] 업적 시스템 (획득/잠김)
+- [x] 설정 메뉴 (프로필 편집, 알림, 계정 탈퇴, 로그아웃)
 
-#### Admin 페이지
-- [ ] 대시보드 (통계 카드)
-- [ ] 티켓 관리 (CRUD)
-- [ ] 그룹 관리 (생성/수정/삭제)
-- [ ] 사용자 관리 (목록/상세)
+**기타 페이지**
+- [x] 로그인 (`app/login/page.tsx`) - Google OAuth
+- [x] 온보딩 (`app/onboarding/page.tsx`)
+- [x] 프로필 편집 (`app/my/edit/page.tsx`)
+- [x] 팔로우/팔로워 (`app/my/follows/page.tsx`)
+- [x] 알림 (`app/notifications/page.tsx`)
+- [x] 컬렉션 (`app/collection/`)
+  - [x] 목록 (`page.tsx`)
+  - [x] 생성 (`new/page.tsx`)
+  - [x] 상세 (`[id]/page.tsx`)
+
+### Backend (Server)
+
+#### 모듈 구현 ✅
+- [x] **AuthModule** - JWT 인증, Google OAuth, 어드민 가드
+- [x] **UsersModule** - CRUD, 팔로우/팔로워, 프로필 편집, 계정 삭제
+- [x] **CategoriesModule** - 카테고리 조회
+- [x] **CatalogGroupsModule** - 그룹 CRUD, 조회수 증가
+- [x] **CatalogItemsModule** - 티켓 CRUD, 카테고리별 조회
+- [x] **StubsModule** - 티켓 수집/해제, 내 티켓 조회
+- [x] **CollectionsModule** - 컬렉션 CRUD, 공개/비공개
+- [x] **LikesModule** - 좋아요/취소, 내 좋아요 조회
+- [x] **FollowsModule** - 팔로우/언팔로우, 팔로워/팔로잉 조회
+- [x] **NotificationsModule** - 알림 생성/조회/읽음 처리, EventEmitter 연동
+- [x] **BannersModule** - 배너 CRUD, 순서 조정
+- [x] **AchievementsModule** - 업적 조회
+- [x] **UploadModule** - 이미지 업로드 (multer)
+
+#### 데이터베이스 ✅
+- [x] TypeORM 설정
+- [x] SQLite 사용
+- [x] 마이그레이션 파일
+- [x] 엔티티 관계 설정 (OneToMany, ManyToOne)
+
+### Admin
+
+#### 페이지 구현 ✅
+- [x] 대시보드 (`app/page.tsx`) - 통계 카드, 메뉴
+- [x] 사용자 관리 (`app/users/page.tsx`) - 목록, 검색, 권한 변경
+- [x] 티켓 관리 (`app/tickets/page.tsx`) - CRUD
+- [x] 배너 관리 (`app/banners/page.tsx`) - 등록, 순서 조정
+- [x] 공지 발송 (`app/notify/page.tsx`) - 시스템 알림 전체 발송
+- [x] 로그인 (`app/login/page.tsx`) - 어드민 토큰 인증
 
 ---
 
@@ -458,32 +689,48 @@ export function Button({ variant = 'primary', children, onClick }: ButtonProps) 
 }
 ```
 
-### Mock 데이터 관리
+### API 클라이언트 사용법
 
 ```typescript
-// lib/data/catalog-data.ts
-import { CatalogGroup } from '@/types/group'
+// client-web/lib/api/ 사용 예시
 
-export const CATALOG_GROUPS: CatalogGroup[] = [
-  {
-    id: 'seoul-jazz-2025',
-    name: '서울재즈페스티벌 2025',
-    category: 'FESTIVAL',
-    color: 'purple',
-    icon: 'music',
-    description: '올림픽공원에서 펼쳐지는 재즈의 향연',
-    tickets: [...],
-    totalTickets: 12,
-    collectedTickets: 8,
-    collectors: 245,
-    likes: 189
-  },
-  // ...
-]
+import { catalogGroupsApi, catalogItemsApi, stubsApi } from '@/lib/api'
 
-export const getGroupById = (id: string) => {
-  return CATALOG_GROUPS.find(group => group.id === id)
-}
+// 카탈로그 그룹 목록 조회
+const groups = await catalogGroupsApi.getAll({ limit: 100 })
+
+// 특정 그룹 상세 조회
+const group = await catalogGroupsApi.getById(49)
+
+// 티켓 목록 조회 (카테고리별 필터)
+const tickets = await catalogItemsApi.getAll({
+  category_id: 1,
+  limit: 20
+})
+
+// 티켓 수집
+await stubsApi.collect(ticketId, { image_url: '...' })
+
+// 내 티켓 목록 조회
+const myStubs = await stubsApi.getMyStubs()
+```
+
+### 환경 변수 설정
+
+```bash
+# client-web/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:3002
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# admin/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:3002
+
+# server/.env (필요 시)
+PORT=3002
+DATABASE_PATH=./database.sqlite
 ```
 
 ---
@@ -502,7 +749,42 @@ npm run build
 # ✓ Exported as static HTML to: out/
 ```
 
-### 2. nginx 설정
+### 2. PM2 프로세스 관리 (추천)
+
+```bash
+# PM2 설치
+npm install -g pm2
+
+# Client-Web 실행
+cd client-web
+npm run build
+pm2 start npm --name "otbook-client" -- start
+
+# Admin 실행
+cd admin
+npm run build
+pm2 start npm --name "otbook-admin" -- start
+
+# Server 실행
+cd server
+npm run build
+pm2 start dist/main.js --name "otbook-server"
+
+# PM2 상태 확인
+pm2 status
+
+# 로그 확인
+pm2 logs otbook-server
+
+# 재시작
+pm2 restart all
+
+# 시스템 부팅 시 자동 실행
+pm2 startup
+pm2 save
+```
+
+### 3. Nginx 리버스 프록시 (선택 사항)
 
 ```nginx
 # /etc/nginx/sites-available/otbook
@@ -511,55 +793,34 @@ server {
     listen 80;
     server_name otbook.example.com;
 
-    # Client-Web
+    # Client-Web (Next.js SSR)
     location / {
-        root /home/gurwls2399/client;
-        try_files $uri $uri.html $uri/ /index.html;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # API Server
+    location /api {
+        proxy_pass http://localhost:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
     }
 
     # Admin
     location /admin {
-        alias /home/gurwls2399/admin;
-        try_files $uri $uri.html $uri/ /admin/index.html;
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
     }
 
     # Gzip 압축
     gzip on;
     gzip_types text/css application/javascript application/json;
-
-    # 정적 파일 캐싱
-    location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
 }
-```
-
-### 3. 배포 스크립트
-
-```bash
-#!/bin/bash
-# deploy.sh
-
-set -e
-
-echo "🏗️  Building projects..."
-
-cd client-web
-npm run build
-cd ../admin
-npm run build
-cd ..
-
-echo "📦 Deploying to server..."
-
-rsync -avz --delete client-web/out/ user@server:/home/gurwls2399/client/
-rsync -avz --delete admin/out/ user@server:/home/gurwls2399/admin/
-
-echo "🔄 Reloading nginx..."
-ssh user@server 'sudo systemctl reload nginx'
-
-echo "✅ Deployment complete!"
 ```
 
 ---
@@ -569,21 +830,46 @@ echo "✅ Deployment complete!"
 ### 2026-02-27 - 프로젝트 초기화
 - [x] Next.js 프로젝트 생성 (client-web, admin)
 - [x] TypeScript + Tailwind CSS 설정
-- [x] Static Export 설정 (`next.config.ts`)
 - [x] 디자인 시스템 적용 (시네마 다크 테마)
 - [x] .claude 디렉토리 구조 설정
-- [x] ai-studio에서 가이드 문서 가져오기
 - [x] PROJECT.md 작성
 - [x] CLAUDE.md 작성 (이 파일)
 
-### 향후 작업
-- [ ] otbook 레거시 페이지 포팅
-- [ ] 공통 컴포넌트 라이브러리 구축
-- [ ] Mock 데이터 TypeScript 변환
-- [ ] Admin 페이지 개발
-- [ ] Backend API 개발 (NestJS)
-- [ ] Frontend-Backend 연동
-- [ ] 배포 자동화
+### 2026-02-28 - 전체 기능 구현 완료
+- [x] **Client-Web (고객용)** 전체 페이지 구현
+  - [x] 홈, 로그인, 온보딩
+  - [x] 검색, 카탈로그 목록/상세
+  - [x] 컬렉션 목록/생성/상세
+  - [x] 마이 페이지 (티켓, 좋아요, 업적, 설정)
+  - [x] 프로필 편집, 팔로우, 알림
+- [x] **Server (백엔드)** NestJS 기반 REST API
+  - [x] 인증 (JWT, Google OAuth)
+  - [x] 사용자, 카테고리, 그룹, 티켓 CRUD
+  - [x] Stub (수집), 좋아요, 팔로우
+  - [x] 컬렉션, 알림, 배너, 업적
+  - [x] 파일 업로드 (multer)
+  - [x] 데이터베이스 마이그레이션
+- [x] **Admin (관리자)** 관리 페이지
+  - [x] 대시보드 (통계)
+  - [x] 사용자 관리 (권한 변경)
+  - [x] 티켓 관리 (CRUD)
+  - [x] 배너 관리 (순서 조정)
+  - [x] 공지 발송 (시스템 알림)
+- [x] **API 연동** 완료
+  - [x] Axios 기반 API 클라이언트
+  - [x] NextAuth 세션 관리
+  - [x] TypeScript 타입 정의
+- [x] **문서 최신화** (2026-02-28)
+  - [x] CLAUDE.md 업데이트 (구현 현황 반영)
+
+### 향후 개선 사항
+- [ ] 검색 기능 고도화 (Elasticsearch 도입 검토)
+- [ ] 이미지 최적화 (Next.js Image, CDN)
+- [ ] 성능 최적화 (React Query, SWR)
+- [ ] E2E 테스트 (Playwright)
+- [ ] CI/CD 파이프라인 구축
+- [ ] 모바일 앱 (React Native 검토)
+- [ ] 실시간 알림 (WebSocket, SSE)
 
 ---
 

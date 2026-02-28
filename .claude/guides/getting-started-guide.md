@@ -36,6 +36,10 @@ npm install
 # Admin 의존성 설치
 cd ../admin
 npm install
+
+# Server 의존성 설치
+cd ../server
+npm install
 ```
 
 ---
@@ -63,14 +67,35 @@ npm run dev
 - 🌐 **URL**: http://localhost:3001
 - 🔒 **접근**: 관리자 전용 페이지
 
-#### 동시 실행 (터미널 2개 사용)
+#### Server (백엔드 API)
 
 ```bash
-# 터미널 1
+cd server
+npm run start:dev
+```
+
+- 🌐 **URL**: http://localhost:3002
+- 📡 **API**: RESTful API 엔드포인트
+- 🗄️ **Database**: SQLite (database.sqlite)
+
+#### 데이터베이스 초기화
+
+```bash
+cd server
+npm run migration:run
+```
+
+#### 동시 실행 (터미널 3개 사용)
+
+```bash
+# 터미널 1 - Client-Web
 cd client-web && npm run dev
 
-# 터미널 2
+# 터미널 2 - Admin
 cd admin && npm run dev
+
+# 터미널 3 - Server
+cd server && npm run start:dev
 ```
 
 ---
@@ -91,6 +116,14 @@ stub/
 │
 ├── admin/               # 어드민 프론트엔드
 │   └── (동일한 구조)
+│
+├── server/              # 백엔드 API (NestJS)
+│   ├── src/
+│   │   ├── main.ts      # 진입점
+│   │   ├── database/    # TypeORM 설정
+│   │   ├── auth/        # 인증 모듈
+│   │   └── */           # 기능별 모듈들
+│   └── database.sqlite  # SQLite DB
 │
 └── .claude/             # 프로젝트 문서
     ├── PROJECT.md       # 프로젝트 개요

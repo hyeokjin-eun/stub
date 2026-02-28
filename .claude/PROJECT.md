@@ -1,6 +1,6 @@
 # OTBOOK - 프로젝트 정보
 
-> **Last Updated:** 2026-02-27 | **Version:** 2.0.0
+> **Last Updated:** 2026-02-28 | **Version:** 2.0.0
 
 ## 프로젝트 개요
 
@@ -11,21 +11,25 @@ OTBOOK은 수집가들이 자신이 소장한 오리지널 티켓(콘서트, 스
 ## 기술 스택
 
 ### Frontend (Client & Admin)
-- **Framework**: Next.js 15+ (App Router)
-- **Language**: TypeScript 5+
-- **Styling**: Tailwind CSS 3.4+
-- **Build**: Static Export
-- **Runtime**: React 19+
+- **Framework**: Next.js 15+ (App Router) ✅
+- **Language**: TypeScript 5+ ✅
+- **Styling**: Tailwind CSS 3.4+ ✅
+- **Authentication**: NextAuth.js 4.24+ (Google OAuth) ✅
+- **HTTP Client**: Axios 1.13+ ✅
+- **Icons**: Lucide React 0.575+ ✅
+- **Runtime**: React 19+ ✅
 
-### Backend (향후 개발 예정)
-- **Framework**: NestJS (TypeScript)
-- **Database**: SQLite (프로토타입 단계)
-- **Future**: PostgreSQL 마이그레이션 고려
+### Backend (구현 완료)
+- **Framework**: NestJS 11+ (TypeScript) ✅
+- **Database**: SQLite + TypeORM 0.3+ ✅
+- **Authentication**: JWT, Passport ✅
+- **File Upload**: Multer ✅
+- **Event System**: EventEmitter ✅
 
 ### Infrastructure
-- **Web Server**: nginx
-- **Port**: 80
-- **Deployment**: Static file deployment (otbook 방식과 동일)
+- **Process Manager**: PM2 (추천) ✅
+- **Web Server**: nginx (리버스 프록시, 선택 사항)
+- **Deployment**: SSR/CSR 동적 배포 ✅
 
 ## 프로젝트 구조
 
@@ -66,8 +70,29 @@ stub/
 │   ├── tsconfig.json
 │   └── package.json
 │
-├── server/                     # 백엔드 (향후 개발)
-│   └── (NestJS 프로젝트)
+├── server/                     # 백엔드 (NestJS) ✅
+│   ├── src/
+│   │   ├── main.ts             # 진입점
+│   │   ├── app.module.ts       # 루트 모듈
+│   │   ├── database/           # TypeORM 설정
+│   │   │   ├── entities/       # 엔티티 정의
+│   │   │   └── migrations/     # DB 마이그레이션
+│   │   ├── auth/               # 인증 (JWT, OAuth)
+│   │   ├── users/              # 사용자 모듈
+│   │   ├── categories/         # 카테고리 모듈
+│   │   ├── catalog-groups/     # 그룹 모듈
+│   │   ├── catalog-items/      # 티켓 모듈
+│   │   ├── stubs/              # Stub 모듈
+│   │   ├── collections/        # 컬렉션 모듈
+│   │   ├── likes/              # 좋아요 모듈
+│   │   ├── follows/            # 팔로우 모듈
+│   │   ├── notifications/      # 알림 모듈
+│   │   ├── banners/            # 배너 모듈
+│   │   ├── achievements/       # 업적 모듈
+│   │   └── upload/             # 파일 업로드
+│   ├── database.sqlite         # SQLite DB
+│   ├── package.json
+│   └── tsconfig.json
 │
 └── README.md
 ```
@@ -105,84 +130,152 @@ stub/
 
 ## 개발 환경 포트
 
-| 서비스 | 포트 | 설명 |
-|--------|------|------|
-| Client-Web (Dev) | 3000 | 고객용 Next.js 개발 서버 |
-| Admin (Dev) | 3001 | 어드민 Next.js 개발 서버 |
-| Backend (Future) | 8000 | NestJS API 서버 |
-| Production | 80 | nginx 프로덕션 서버 |
+| 서비스 | 포트 | 설명 | 상태 |
+|--------|------|------|------|
+| Client-Web (Dev) | 3000 | 고객용 Next.js 개발 서버 | ✅ |
+| Admin (Dev) | 3001 | 어드민 Next.js 개발 서버 | ✅ |
+| Server (Dev) | 3002 | NestJS API 서버 | ✅ |
+| Production | 80 | nginx 리버스 프록시 (선택 사항) | ⏳ |
 
 ## 배포 방식
 
-### Static Export (현재)
+### SSR/CSR 동적 배포 (현재)
 ```bash
-# Client-Web 빌드
-cd client-web
-npm run build
-# → out/ 폴더에 정적 파일 생성
+# 1. 빌드
+cd client-web && npm run build  # Next.js 빌드
+cd admin && npm run build       # Next.js 빌드
+cd server && npm run build      # NestJS 빌드
 
-# Admin 빌드
-cd admin
-npm run build
-# → out/ 폴더에 정적 파일 생성
+# 2. PM2로 프로세스 실행
+pm2 start npm --name "otbook-client" -- start  # 포트 3000
+pm2 start npm --name "otbook-admin" -- start   # 포트 3001
+pm2 start dist/main.js --name "otbook-server"  # 포트 3002
 
-# nginx에 배포
-cp -r client-web/out/* /home/gurwls2399/client/
-cp -r admin/out/* /home/gurwls2399/admin/
+# 3. PM2 상태 확인
+pm2 status
+pm2 logs
+
+# 4. 시스템 부팅 시 자동 실행 설정
+pm2 startup
+pm2 save
 ```
+
+### Nginx 리버스 프록시 (선택 사항)
+```nginx
+server {
+    listen 80;
+    server_name otbook.example.com;
+
+    location / {
+        proxy_pass http://localhost:3000;  # Client-Web
+    }
+
+    location /api {
+        proxy_pass http://localhost:3002;  # Server
+    }
+
+    location /admin {
+        proxy_pass http://localhost:3001;  # Admin
+    }
+}
+```
+
+## 주요 기능
+
+### 사용자 기능 (Client-Web)
+- ✅ **인증**: Google OAuth 로그인, 온보딩 프로세스
+- ✅ **홈**: 배너, 통계, 추천/인기/최근 컬렉션
+- ✅ **검색**: 실시간 검색, 카테고리 필터, 최근 검색어
+- ✅ **카탈로그**: 그룹 목록/상세, 티켓 수집/해제, 이미지 업로드
+- ✅ **컬렉션**: 생성/수정/삭제, 공개/비공개, 좋아요/댓글
+- ✅ **마이 페이지**: 내 티켓, 좋아요, 업적, 설정
+- ✅ **소셜**: 팔로우/언팔로우, 팔로워/팔로잉 목록
+- ✅ **알림**: 실시간 알림, 읽음/안읽음 처리
+
+### 관리자 기능 (Admin)
+- ✅ **대시보드**: 통계 (유저, 티켓, 그룹, 컬렉션)
+- ✅ **사용자 관리**: 목록, 검색, 권한 변경 (USER/ADMIN)
+- ✅ **티켓 관리**: CRUD (생성, 수정, 삭제)
+- ✅ **배너 관리**: 등록, 순서 조정, 활성화/비활성화
+- ✅ **공지 발송**: 시스템 알림 전체 발송
+
+### 백엔드 API (Server)
+- ✅ **인증**: JWT, Google OAuth, 어드민 가드
+- ✅ **RESTful API**: 모든 엔티티 CRUD
+- ✅ **파일 업로드**: Multer 기반 이미지 업로드
+- ✅ **이벤트 시스템**: EventEmitter로 알림 자동 생성
+- ✅ **데이터베이스**: TypeORM + SQLite, 마이그레이션
 
 ## 레거시 참조
 
-이 프로젝트는 순수 HTML/CSS/JS로 작성된 [otbook 프로토타입](../otbook/)을 Next.js로 마이그레이션한 것입니다.
+이 프로젝트는 순수 HTML/CSS/JS로 작성된 [otbook 프로토타입](../otbook/)을 Next.js + NestJS 풀스택으로 마이그레이션한 것입니다.
 
-- 기존 디자인 시스템과 컴포넌트 유지
-- React 컴포넌트로 재구성하여 재사용성 향상
-- TypeScript 도입으로 타입 안정성 확보
-- Static Export로 기존 배포 방식 유지
+- ✅ 기존 디자인 시스템과 UI/UX 유지
+- ✅ React 컴포넌트로 재구성하여 재사용성 향상
+- ✅ TypeScript 도입으로 타입 안정성 확보
+- ✅ NestJS 백엔드로 완전한 풀스택 구현
 
 ## 로드맵
 
-### Phase 1 - 프로젝트 구조 설정 ✅
+### Phase 1 - 프로젝트 구조 설정 ✅ (2026-02-27)
 - [x] Next.js 프로젝트 초기화 (client-web, admin)
 - [x] TypeScript + Tailwind CSS 설정
-- [x] Static Export 설정
 - [x] 디자인 시스템 적용
 
-### Phase 2 - Frontend 개발 (진행 중)
-- [ ] otbook 페이지들 Next.js로 포팅
-  - [ ] 홈 (index.html → app/page.tsx)
-  - [ ] 검색 (search.html → app/search/page.tsx)
-  - [ ] 카탈로그 (catalog.html → app/catalog/page.tsx)
-  - [ ] 카탈로그 상세 (catalog-detail.html → app/catalog/[id]/page.tsx)
-  - [ ] 마이 페이지 (my.html → app/my/page.tsx)
-- [ ] 공통 컴포넌트 작성
-  - [ ] TicketCard (tg-card)
-  - [ ] GroupCard
-  - [ ] BottomNav
-  - [ ] Header
-  - [ ] Modal
-- [ ] Admin 페이지 개발
-  - [ ] 대시보드
-  - [ ] 티켓 관리
-  - [ ] 그룹 관리
-  - [ ] 사용자 관리
+### Phase 2 - Frontend 개발 ✅ (2026-02-28)
+- [x] 모든 페이지 Next.js로 포팅
+  - [x] 홈 (`app/page.tsx`)
+  - [x] 로그인 (`app/login/page.tsx`)
+  - [x] 온보딩 (`app/onboarding/page.tsx`)
+  - [x] 검색 (`app/search/page.tsx`)
+  - [x] 카탈로그 목록 (`app/catalog/page.tsx`)
+  - [x] 카탈로그 상세 (`app/catalog/[id]/page.tsx`)
+  - [x] 컬렉션 (`app/collection/`)
+  - [x] 마이 페이지 (`app/my/page.tsx`)
+  - [x] 프로필 편집 (`app/my/edit/page.tsx`)
+  - [x] 팔로우/팔로워 (`app/my/follows/page.tsx`)
+  - [x] 알림 (`app/notifications/page.tsx`)
+- [x] 공통 컴포넌트 작성
+  - [x] Header, Navigation
+  - [x] Banner, QuickStats
+  - [x] CategoryFilter
+  - [x] TicketCard, LoadingOverlay
+  - [x] Providers (NextAuth)
+- [x] Admin 페이지 개발
+  - [x] 대시보드 (통계)
+  - [x] 사용자 관리 (권한 변경)
+  - [x] 티켓 관리 (CRUD)
+  - [x] 배너 관리 (순서 조정)
+  - [x] 공지 발송 (시스템 알림)
 
-### Phase 3 - Backend API (계획됨)
-- [ ] NestJS 프로젝트 초기화
-- [ ] SQLite 설정
-- [ ] RESTful API 구현
-  - [ ] 티켓 CRUD
-  - [ ] 그룹 CRUD
-  - [ ] 사용자 인증
-  - [ ] 검색 API
-- [ ] Frontend-Backend 연동
+### Phase 3 - Backend API ✅ (2026-02-28)
+- [x] NestJS 프로젝트 초기화
+- [x] TypeORM + SQLite 설정
+- [x] RESTful API 구현
+  - [x] 인증 (JWT, Google OAuth)
+  - [x] 티켓/그룹 CRUD
+  - [x] 사용자 CRUD
+  - [x] Stub (수집) CRUD
+  - [x] 좋아요, 팔로우 CRUD
+  - [x] 컬렉션 CRUD
+  - [x] 알림 CRUD (EventEmitter)
+  - [x] 배너 CRUD
+  - [x] 파일 업로드 (multer)
+- [x] Frontend-Backend API 연동
+  - [x] Axios 클라이언트
+  - [x] TypeScript 타입 정의
+  - [x] NextAuth 세션 관리
 
-### Phase 4 - 배포 및 최적화 (계획됨)
-- [ ] nginx 설정
-- [ ] 이미지 최적화
-- [ ] SEO 최적화
-- [ ] 성능 모니터링
-- [ ] PWA 설정 (선택)
+### Phase 4 - 배포 및 최적화 ⏳ (계획)
+- [ ] PM2 프로세스 관리 설정
+- [ ] Nginx 리버스 프록시 설정
+- [ ] 이미지 최적화 (Next.js Image, CDN)
+- [ ] SEO 최적화 (메타태그, Open Graph)
+- [ ] 성능 모니터링 (Sentry, Analytics)
+- [ ] CI/CD 파이프라인 (GitHub Actions)
+- [ ] PWA 설정 (Service Worker)
+- [ ] 검색 고도화 (Elasticsearch)
+- [ ] 실시간 알림 (WebSocket, SSE)
 
 ---
 

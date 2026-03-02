@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   devIndicators: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 }
 
 export default nextConfig

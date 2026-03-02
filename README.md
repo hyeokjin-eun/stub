@@ -119,23 +119,40 @@ cd server
 npm run migration:run
 ```
 
-### 6. 빌드
+### 6. 빌드 및 프로덕션 실행
+
+> ⚠️ 개발 서버(`npm run dev`, `npm run start:dev`)는 파일 변경을 감지해 자동 재시작되므로 프로덕션에서 사용하지 마세요.
 
 ```bash
-# Client-Web 빌드
-cd client-web
+# 서버 빌드 & 백그라운드 실행
+cd /home/gurwls2399/stub/server
 npm run build
-npm run start  # 프로덕션 실행 (포트 3000)
+nohup node dist/main.js > server.log 2>&1 &
 
-# Admin 빌드
-cd admin
+# 클라이언트 빌드 & 백그라운드 실행
+cd /home/gurwls2399/stub/client-web
 npm run build
-npm run start  # 프로덕션 실행 (포트 3001)
+nohup npm run start > client.log 2>&1 &
 
-# Server 빌드
-cd server
+# 어드민 빌드 & 백그라운드 실행
+cd /home/gurwls2399/stub/admin
 npm run build
-npm run start:prod  # 프로덕션 실행 (포트 3002)
+nohup npm run start > admin.log 2>&1 &
+```
+
+**로그 확인:**
+```bash
+tail -f /home/gurwls2399/stub/server/server.log
+tail -f /home/gurwls2399/stub/client-web/client.log
+tail -f /home/gurwls2399/stub/admin/admin.log
+```
+
+**프로세스 종료:**
+```bash
+# 포트로 프로세스 찾아서 종료
+kill $(lsof -t -i:3002)  # 서버
+kill $(lsof -t -i:3000)  # 클라이언트
+kill $(lsof -t -i:3001)  # 어드민
 ```
 
 ---

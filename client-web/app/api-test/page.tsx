@@ -18,7 +18,7 @@ export default function ApiTestPage() {
         console.log('✅ Direct fetch success:', directData)
 
         // Test 2: API client categories
-        const categoriesData = await categoriesApi.getAll()
+        const categoriesData = await categoriesApi.getRoots()
         console.log('✅ Categories API success:', categoriesData)
 
         // Test 3: API client catalog items

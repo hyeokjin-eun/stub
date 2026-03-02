@@ -11,6 +11,7 @@ import DynamicTitle from '@/components/DynamicTitle'
 import { ItemTypeIcon } from '@/components/ItemTypeIcon'
 import { categoriesApi, catalogItemsApi, catalogGroupsApi, usersApi } from '@/lib/api'
 import type { Category, CatalogItem, CatalogGroup, ItemType, ItemTypeUiConfig } from '@/lib/api/types'
+import { useAppSettings } from '@/lib/contexts/AppSettingsContext'
 
 // item_type별 메타데이터 (시네마 테마 색상)
 const ITEM_TYPE_META: Record<ItemType, { label: string; color: string }> = {
@@ -56,6 +57,7 @@ const ITEM_TYPE_TABS: { type: ItemType; label: string; icon: React.ElementType }
 export default function Home() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { adsEnabled } = useAppSettings()
   const [itemTypeConfigs, setItemTypeConfigs] = useState<ItemTypeUiConfig[]>([])
   const [activeItemType, setActiveItemType] = useState<ItemType | 'ALL'>('ALL')
   const [groups, setGroups] = useState<CatalogGroup[]>([])
@@ -166,9 +168,11 @@ export default function Home() {
         />
 
         {/* Ad Banner Slot */}
-        <div id="banner-ad-slot" className="anim anim-d2">
-          <span className="ad-placeholder-text">광고 연결 영역</span>
-        </div>
+        {adsEnabled && (
+          <div id="banner-ad-slot" className="anim anim-d2">
+            <span className="ad-placeholder-text">광고 연결 영역</span>
+          </div>
+        )}
 
         {/* Item Type 탭 필터 - ui_config 기반 */}
         {visibleItemTypeTabs.length > 1 && (

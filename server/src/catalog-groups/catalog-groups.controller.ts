@@ -63,12 +63,12 @@ export class CatalogGroupsController {
     @Request() req,
     @Body() updateDto: UpdateCatalogGroupDto,
   ) {
-    return this.catalogGroupsService.update(id, req.user.id, updateDto);
+    return this.catalogGroupsService.update(id, req.user.id, req.user.role, updateDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.catalogGroupsService.remove(id, req.user.id);
+    return this.catalogGroupsService.remove(id, req.user.id, req.user.role);
   }
 }

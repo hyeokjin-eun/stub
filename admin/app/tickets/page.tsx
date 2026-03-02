@@ -1,9 +1,20 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, X, Trash2, Edit2, Film, Star, ChevronDown, RefreshCw } from 'lucide-react'
+import { Plus, Search, X, Trash2, Edit2, Film, Star, ChevronDown, RefreshCw, Sparkles, Loader2 } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 import type { CatalogGroup, Category } from '@/lib/api'
+
+interface TMDBMovie {
+  id: number
+  title: string
+  originalTitle: string
+  overview: string
+  posterUrl: string | null
+  backdropUrl: string | null
+  releaseDate: string
+  voteAverage: number
+}
 
 export default function TicketsPage() {
   const [groups, setGroups]         = useState<CatalogGroup[]>([])
@@ -17,6 +28,12 @@ export default function TicketsPage() {
   const [editing, setEditing] = useState<CatalogGroup | null>(null)
   const [form, setForm]     = useState({ name: '', description: '', thumbnail_url: '', color: '', category_id: '' })
   const [saving, setSaving] = useState(false)
+
+  // TMDB 검색
+  const [tmdbModal, setTmdbModal] = useState(false)
+  const [tmdbQuery, setTmdbQuery] = useState('')
+  const [tmdbResults, setTmdbResults] = useState<TMDBMovie[]>([])
+  const [tmdbLoading, setTmdbLoading] = useState(false)
 
   useEffect(() => {
     adminApi.categoriesTree().then((tree: Category[]) => {
@@ -63,6 +80,34 @@ export default function TicketsPage() {
     if (!confirm(`"${name}" 을(를) 삭제할까요?`)) return
     await adminApi.deleteGroup(id).catch(() => null)
     await load()
+  }
+
+  // TMDB 검색 실행
+  const handleTmdbSearch = async () => {
+    if (!tmdbQuery.trim()) return
+    setTmdbLoading(true)
+    try {
+      const data = await adminApi.tmdbSearch(tmdbQuery)
+      setTmdbResults(data.results || [])
+    } catch (error) {
+      console.error('TMDB search error:', error)
+      alert('TMDB 검색 중 오류가 발생했습니다. TMDB API 키가 설정되어 있는지 확인하세요.')
+    } finally {
+      setTmdbLoading(false)
+    }
+  }
+
+  // TMDB 결과 선택
+  const handleSelectTmdb = (movie: TMDBMovie) => {
+    setForm(prev => ({
+      ...prev,
+      name: movie.title,
+      description: movie.overview,
+      thumbnail_url: movie.backdropUrl || movie.posterUrl || '',
+    }))
+    setTmdbModal(false)
+    setTmdbQuery('')
+    setTmdbResults([])
   }
 
   const catTabs = categories.filter(c => c.depth <= 1).slice(0, 12)
@@ -179,6 +224,17 @@ export default function TicketsPage() {
                   <img src={form.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
+
+              {/* TMDB 검색 버튼 */}
+              <button
+                className="btn btn-ghost"
+                onClick={() => setTmdbModal(true)}
+                style={{ width: '100%', marginBottom: 14, justifyContent: 'center', gap: 6 }}
+              >
+                <Sparkles size={14} />
+                TMDB에서 검색
+              </button>
+
               <div className="field">
                 <label className="lbl">작품명 *</label>
                 <input className="inp" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="오징어 게임" />
@@ -216,6 +272,97 @@ export default function TicketsPage() {
             <div className="modal-foot">
               <button className="btn btn-ghost" onClick={() => setModal(null)}>취소</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={!form.name.trim() || saving}>{saving ? '저장 중...' : '저장'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TMDB 검색 모달 */}
+      {tmdbModal && (
+        <div className="backdrop" onClick={() => setTmdbModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <div className="modal-head">
+              <span className="modal-title">TMDB 영화 검색</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setTmdbModal(false)}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              {/* 검색 입력 */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <div className="search" style={{ flex: 1 }}>
+                  <Search size={13} color="var(--txt-3)" />
+                  <input
+                    value={tmdbQuery}
+                    onChange={e => setTmdbQuery(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && handleTmdbSearch()}
+                    placeholder="영화 제목 검색..."
+                  />
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={handleTmdbSearch} disabled={tmdbLoading}>
+                  {tmdbLoading ? <Loader2 size={13} className="spin" /> : <Search size={13} />}
+                  검색
+                </button>
+              </div>
+
+              {/* 검색 결과 */}
+              {tmdbLoading ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Loader2 size={24} className="spin" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontSize: 13 }}>검색 중...</div>
+                </div>
+              ) : tmdbResults.length > 0 ? (
+                <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                  {tmdbResults.map(movie => (
+                    <div
+                      key={movie.id}
+                      onClick={() => handleSelectTmdb(movie)}
+                      style={{
+                        display: 'flex',
+                        gap: 12,
+                        padding: 12,
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--r)',
+                        marginBottom: 8,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    >
+                      {movie.posterUrl && (
+                        <div style={{ width: 60, height: 90, borderRadius: 4, overflow: 'hidden', flexShrink: 0, background: 'var(--bg3)' }}>
+                          <img src={movie.posterUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{movie.title}</div>
+                        {movie.originalTitle !== movie.title && (
+                          <div style={{ fontSize: 11, color: 'var(--txt-3)', marginBottom: 4 }}>{movie.originalTitle}</div>
+                        )}
+                        <div style={{ fontSize: 11, color: 'var(--txt-2)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                          {movie.overview || '설명 없음'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: 'var(--txt-3)', fontFamily: 'DM Mono' }}>{movie.releaseDate}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--gold)' }}>
+                            <Star size={11} fill="var(--gold)" />
+                            {movie.voteAverage.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : tmdbQuery ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Film size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13 }}>검색 결과가 없습니다</div>
+                </div>
+              ) : (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Search size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13 }}>영화 제목을 검색해보세요</div>
+                </div>
+              )}
             </div>
           </div>
         </div>

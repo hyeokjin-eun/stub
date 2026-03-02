@@ -25,14 +25,6 @@ const GROUPS = [
   ]},
 ]
 
-const MOBILE = [
-  { href: '/',       icon: LayoutDashboard, label: '홈' },
-  { href: '/works',  icon: FolderHeart,     label: '카탈로그' },
-  { href: '/users',  icon: Users,           label: '유저' },
-  { href: '/banners',icon: ImageIcon,       label: '배너' },
-  { href: '/categories', icon: Settings,    label: '설정' },
-]
-
 const TITLES: Record<string, string> = {
   '/': '대시보드', '/works': '카탈로그 관리', '/banners': '배너 관리',
   '/users': '유저 관리', '/notify': '공지 발송',
@@ -108,21 +100,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
         <main className="page">{children}</main>
       </div>
-
-      {/* ── Mobile nav ── */}
-      <nav className="mobile-nav">
-        <div className="mobile-nav-inner">
-          {MOBILE.map(({ href, icon: Icon, label }) => {
-            const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
-            return (
-              <div key={href} className={`mobile-nav-item ${active ? 'on' : ''}`}
-                onClick={() => router.push(href)}>
-                <Icon size={19} /><span>{label}</span>
-              </div>
-            )
-          })}
-        </div>
-      </nav>
     </div>
   )
 }

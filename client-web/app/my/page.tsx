@@ -11,6 +11,7 @@ import CategoryFilter from '@/components/CategoryFilter'
 import DynamicTitle from '@/components/DynamicTitle'
 import { catalogItemsApi, likesApi, achievementsApi, usersApi, stubsApi, followsApi, notificationsApi, appSettingsApi } from '@/lib/api'
 import type { CatalogItem, Achievement, Category, Stub } from '@/lib/api/types'
+import { useAppSettings } from '@/lib/contexts/AppSettingsContext'
 
 const getCategoryIcon = (code?: string) => {
   const iconMap: Record<string, React.ElementType> = {
@@ -28,6 +29,7 @@ const getCategoryIcon = (code?: string) => {
 export default function MyPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const { adsEnabled } = useAppSettings()
   const [activeTab, setActiveTab] = useState('tickets')
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [myStubs, setMyStubs] = useState<Stub[]>([])
@@ -207,10 +209,12 @@ export default function MyPage() {
             </div>
           </div>
 
-          {/* Ad Banner Slot (always visible below tabs) */}
-          <div id="banner-ad-slot" className="anim anim-d2">
-            <span className="ad-placeholder-text">광고 연결 영역</span>
-          </div>
+          {/* Ad Banner Slot */}
+          {adsEnabled && (
+            <div id="banner-ad-slot" className="anim anim-d2">
+              <span className="ad-placeholder-text">광고 연결 영역</span>
+            </div>
+          )}
 
           {/* Tab Panels */}
           {activeTab === 'tickets' && (

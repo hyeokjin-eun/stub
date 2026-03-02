@@ -27,6 +27,10 @@ export class AppSettings {
   @Column({ type: 'text', nullable: true })
   app_description: string;
 
+  // 광고 활성화 여부 (기본값: true)
+  @Column({ type: 'boolean', default: true })
+  ads_enabled: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

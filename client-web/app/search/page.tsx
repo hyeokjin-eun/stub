@@ -9,10 +9,12 @@ import { Search, X, Music, Trophy, Film, Drama, Palette, PartyPopper, Ticket, Ch
 import { useSession } from 'next-auth/react'
 import { catalogGroupsApi, categoriesApi } from '@/lib/api'
 import type { CatalogGroup, Category } from '@/lib/api/types'
+import { useAppSettings } from '@/lib/contexts/AppSettingsContext'
 
 export default function SearchPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const { adsEnabled } = useAppSettings()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('CINEMA') // 영화 카테고리 고정
   const [recentSearches, setRecentSearches] = useState<string[]>([])
@@ -166,10 +168,12 @@ export default function SearchPage() {
             style={{ paddingTop: '14px' }}
           /> */}
 
-          {/* Ad Banner Slot - 항상 표시 */}
-          <div id="banner-ad-slot" className="anim anim-d1" style={{ marginTop: '16px' }}>
-            <span className="ad-placeholder-text">광고 연결 영역</span>
-          </div>
+          {/* Ad Banner Slot */}
+          {adsEnabled && (
+            <div id="banner-ad-slot" className="anim anim-d1" style={{ marginTop: '16px' }}>
+              <span className="ad-placeholder-text">광고 연결 영역</span>
+            </div>
+          )}
 
           <div className="page-content" style={{ paddingTop: '16px' }}>
             {isSearching ? (

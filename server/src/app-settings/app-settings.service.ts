@@ -22,6 +22,7 @@ export class AppSettingsService {
         app_title: 'STUB',
         app_subtitle: '당신의 추억을 수집하세요',
         app_description: '영화, 공연, 스포츠 티켓을 수집하고 공유하는 플랫폼',
+        ads_enabled: true,
       });
       await this.appSettingsRepo.save(settings);
     }

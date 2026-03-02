@@ -353,19 +353,6 @@ select.inp { appearance: none; cursor: pointer; background-image: url("data:imag
 }
 .fab:active { transform: scale(.93); }
 
-/* ─── Mobile bottom nav ──────────────────── */
-.mobile-nav {
-  display: none; position: fixed; bottom: 0; left: 0; right: 0;
-  height: var(--nav-h); background: var(--bg2); border-top: 1px solid var(--border);
-  z-index: 30; padding-bottom: env(safe-area-inset-bottom);
-}
-.mobile-nav-inner { display: flex; height: 100%; }
-.mobile-nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; cursor: pointer; color: var(--txt-3); font-size: 10px;
-  font-family: 'DM Mono', monospace; transition: color .12s;
-}
-.mobile-nav-item.on { color: var(--gold); }
 
 /* ─── Hamburger ──────────────────────────── */
 .ham {
@@ -386,13 +373,11 @@ select.inp { appearance: none; cursor: pointer; background-image: url("data:imag
   .sb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 39; }
   .main-wrap { margin-left: 0; }
   .topbar { padding: 0 14px; }
-  .page { padding: 14px 14px calc(var(--nav-h) + 14px); }
+  .page { padding: 14px; }
   .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
   .stat { padding: 13px 14px; }
   .stat-val { font-size: 20px; }
-  .mobile-nav { display: flex; }
   .ham { display: flex; }
-  .fab { bottom: calc(var(--nav-h) + 10px); }
 
   /* table → stacked cards */
   .tbl thead { display: none; }

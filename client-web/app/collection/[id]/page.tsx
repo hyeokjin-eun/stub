@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Check, Lock, Trash2, Heart, Send, User, Mess
 import Navigation from '@/components/Navigation'
 import { collectionsApi, collectionLikesApi, collectionCommentsApi } from '@/lib/api'
 import type { Collection, CollectionItem, CollectionComment } from '@/lib/api/types'
+import { useAppSettings } from '@/lib/contexts/AppSettingsContext'
 
 const PAGE_SIZE = 6
 
@@ -43,6 +44,7 @@ export default function CollectionDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session } = useSession()
+  const { adsEnabled } = useAppSettings()
   const collectionId = Number(params.id)
 
   const [collection, setCollection] = useState<Collection | null>(null)
@@ -281,9 +283,11 @@ export default function CollectionDetailPage() {
           </div>
 
           {/* Ad Banner */}
-          <div id="banner-ad-slot" style={{ margin: '14px 20px 0' }}>
-            <span className="ad-placeholder-text">광고 연결 영역</span>
-          </div>
+          {adsEnabled && (
+            <div id="banner-ad-slot" style={{ margin: '14px 20px 0' }}>
+              <span className="ad-placeholder-text">광고 연결 영역</span>
+            </div>
+          )}
 
           {activeTab === 'items' ? (
             <>

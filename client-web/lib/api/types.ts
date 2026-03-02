@@ -281,6 +281,7 @@ export interface AppSettings {
   app_title: string
   app_subtitle: string | null
   app_description: string | null
+  ads_enabled: boolean
   created_at: string
   updated_at: string
 }

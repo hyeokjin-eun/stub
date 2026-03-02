@@ -12,6 +12,7 @@ import CategoryFilter from '@/components/CategoryFilter'
 import DynamicTitle from '@/components/DynamicTitle'
 import { catalogGroupsApi, categoriesApi, catalogItemsApi, stubsApi, notificationsApi, appSettingsApi } from '@/lib/api'
 import type { CatalogGroup, Category, ItemType, ItemTypeUiConfig } from '@/lib/api/types'
+import { useAppSettings } from '@/lib/contexts/AppSettingsContext'
 
 // item_type별 아이콘
 const getItemTypeIcon = (itemType?: ItemType | null): React.ElementType => {
@@ -86,6 +87,7 @@ const ITEM_TYPE_TABS: { type: ItemType; label: string; icon: React.ElementType; 
 export default function CatalogPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { adsEnabled } = useAppSettings()
 
   const [itemTypeConfigs, setItemTypeConfigs] = useState<ItemTypeUiConfig[]>([])
   const [activeItemType, setActiveItemType] = useState<ItemType | 'ALL'>('ALL')
@@ -368,9 +370,11 @@ export default function CatalogPage() {
           </div>
 
           {/* Ad Banner Slot */}
-          <div id="banner-ad-slot" className="anim anim-d2">
-            <span className="ad-placeholder-text">광고 연결 영역</span>
-          </div>
+          {adsEnabled && (
+            <div id="banner-ad-slot" className="anim anim-d2">
+              <span className="ad-placeholder-text">광고 연결 영역</span>
+            </div>
+          )}
 
           {/* item_type 탭 - ui_config 기반 동적 표시 */}
           {visibleItemTypeTabs.length > 1 && (

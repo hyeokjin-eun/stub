@@ -16,7 +16,12 @@ export class AppSettingsController {
   // PUT /app-settings - 앱 설정 업데이트 (admin only)
   @Put()
   @UseGuards(JwtAuthGuard, AdminGuard)
-  updateSettings(@Body() data: { app_title?: string; app_subtitle?: string; app_description?: string }) {
+  updateSettings(@Body() data: {
+    app_title?: string;
+    app_subtitle?: string;
+    app_description?: string;
+    ads_enabled?: boolean;
+  }) {
     return this.appSettingsService.updateSettings(data);
   }
 }

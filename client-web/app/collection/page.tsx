@@ -6,9 +6,11 @@ import { Plus, FolderHeart, Trash2, X } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { collectionsApi, collectionLikesApi } from '@/lib/api'
 import type { Collection } from '@/lib/api/types'
+import { useAppSettings } from '@/lib/contexts/AppSettingsContext'
 
 export default function CollectionPage() {
   const router = useRouter()
+  const { adsEnabled } = useAppSettings()
   const [activeTab, setActiveTab] = useState<'mine' | 'public'>('mine')
   const [myCollections, setMyCollections] = useState<Collection[]>([])
   const [publicCollections, setPublicCollections] = useState<Collection[]>([])
@@ -116,9 +118,11 @@ export default function CollectionPage() {
         </div>
 
           {/* Ad Banner */}
-          <div id="banner-ad-slot" className="anim anim-d2" style={{ marginTop: '12px' }}>
-            <span className="ad-placeholder-text">광고 연결 영역</span>
-          </div>
+          {adsEnabled && (
+            <div id="banner-ad-slot" className="anim anim-d2" style={{ marginTop: '12px' }}>
+              <span className="ad-placeholder-text">광고 연결 영역</span>
+            </div>
+          )}
 
         <div style={{ padding: '16px 12px 0' }}>
           {loading ? (

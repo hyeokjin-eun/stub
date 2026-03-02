@@ -19,6 +19,7 @@ import { CollectionLikesModule } from './collection-likes/collection-likes.modul
 import { CollectionCommentsModule } from './collection-comments/collection-comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
+import { TmdbModule } from './tmdb/tmdb.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AppSettingsModule } from './app-settings/app-settings.module';
     CollectionCommentsModule,
     NotificationsModule,
     AppSettingsModule,
+    TmdbModule,
   ],
   controllers: [AppController],
   providers: [AppService],

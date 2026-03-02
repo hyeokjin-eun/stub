@@ -4,9 +4,22 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Plus, Search, X, Trash2, Edit2, Film, ChevronRight,
   RefreshCw, ArrowLeft, Package, User, Eye, EyeOff, BookOpen,
+  Sparkles, Loader2, Star,
 } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 import type { CatalogGroup, CatalogItem, Category } from '@/lib/api'
+
+interface TMDBMovie {
+  id: number
+  mediaType: 'movie' | 'tv'
+  title: string
+  originalTitle: string
+  overview: string
+  posterUrl: string | null
+  backdropUrl: string | null
+  releaseDate: string
+  voteAverage: number
+}
 
 // ─── 상태 뱃지 ──────────────────────────────────────────────────
 const STATUS_CLS: Record<string, string> = {
@@ -47,8 +60,12 @@ export default function WorksPage() {
 function CatalogList({ onDrillDown }: { onDrillDown: (g: CatalogGroup) => void }) {
   const [groups, setGroups]         = useState<CatalogGroup[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [categoryTree, setCategoryTree] = useState<Category[]>([])
   const [query, setQuery]           = useState('')
-  const [activeCat, setActiveCat]   = useState(0)
+  const [activeItemType, setActiveItemType] = useState<string>('')
+  const [activeDepth0, setActiveDepth0] = useState<number>(0)  // 대분류
+  const [activeDepth1, setActiveDepth1] = useState<number>(0)  // 중분류
+  const [activeDepth2, setActiveDepth2] = useState<number>(0)  // 소분류
   const [loading, setLoading]       = useState(true)
   const [total, setTotal]           = useState(0)
 
@@ -57,8 +74,17 @@ function CatalogList({ onDrillDown }: { onDrillDown: (g: CatalogGroup) => void }
   const [form, setForm]       = useState({ name: '', description: '', thumbnail_url: '', color: '', category_id: '' })
   const [saving, setSaving]   = useState(false)
 
+  // TMDB 검색
+  const [tmdbModal, setTmdbModal] = useState(false)
+  const [tmdbQuery, setTmdbQuery] = useState('')
+  const [tmdbResults, setTmdbResults] = useState<TMDBMovie[]>([])
+  const [tmdbLoading, setTmdbLoading] = useState(false)
+  const [tmdbImageType, setTmdbImageType] = useState<'poster' | 'backdrop'>('backdrop')
+
   useEffect(() => {
     adminApi.categoriesTree().then((tree: Category[]) => {
+      setCategoryTree(tree)
+      // flat 리스트도 만들어둠
       const flat: Category[] = []
       const walk = (list: Category[]) => list.forEach(c => { flat.push(c); if (c.children) walk(c.children) })
       walk(tree); setCategories(flat)
@@ -68,18 +94,41 @@ function CatalogList({ onDrillDown }: { onDrillDown: (g: CatalogGroup) => void }
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await adminApi.groups(1, 200, activeCat || undefined)
+      // 모든 그룹을 가져와서 클라이언트 사이드 필터링
+      const data = await adminApi.groups(1, 500, undefined, activeItemType || undefined)
       setGroups(data.data || []); setTotal(data.total || 0)
     } catch { setGroups([]) }
     finally { setLoading(false) }
-  }, [activeCat])
+  }, [activeItemType])
 
   useEffect(() => { load() }, [load])
 
-  const filtered = groups.filter(g => !query || g.name.toLowerCase().includes(query.toLowerCase()))
+  const filtered = groups.filter(g => {
+    // 검색어 필터
+    if (query && !g.name.toLowerCase().includes(query.toLowerCase())) return false
+
+    const groupCategory = g.category
+    if (!groupCategory) return false
+
+    // 카테고리 계층 구조 파악
+    const leaf = groupCategory  // depth=2
+    const middle = leaf.parent  // depth=1
+    const root = middle?.parent || middle  // depth=0
+
+    // 대분류 필터
+    if (activeDepth0 !== 0 && root?.id !== activeDepth0) return false
+
+    // 중분류 필터
+    if (activeDepth1 !== 0 && middle?.id !== activeDepth1) return false
+
+    // 소분류 필터
+    if (activeDepth2 !== 0 && leaf.id !== activeDepth2) return false
+
+    return true
+  })
 
   const openCreate = () => {
-    setForm({ name: '', description: '', thumbnail_url: '', color: '', category_id: activeCat ? String(activeCat) : '' })
+    setForm({ name: '', description: '', thumbnail_url: '', color: '', category_id: activeDepth2 ? String(activeDepth2) : '' })
     setEditing(null); setModal('create')
   }
   const openEdit = (g: CatalogGroup, e: React.MouseEvent) => {
@@ -103,12 +152,81 @@ function CatalogList({ onDrillDown }: { onDrillDown: (g: CatalogGroup) => void }
   }
   const handleDelete = async (id: number, name: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm(`"${name}" 카탈로그를 삭제할까요?\n연결된 수집품도 모두 삭제됩니다.`)) return
-    await adminApi.deleteGroup(id).catch(() => null)
-    await load()
+    if (!confirm(`"${name}" 카탈로그를 삭제할까요?\n연결된 수집품은 그룹 없음 상태가 됩니다.`)) return
+    try {
+      await adminApi.deleteGroup(id)
+      await load()
+    } catch (err: any) {
+      alert(err.response?.data?.message || '삭제 실패')
+    }
   }
 
-  const catTabs = categories.filter(c => c.depth <= 1).slice(0, 14)
+  // TMDB 검색 실행
+  const handleTmdbSearch = async () => {
+    if (!tmdbQuery.trim()) return
+    setTmdbLoading(true)
+    try {
+      const data = await adminApi.tmdbSearch(tmdbQuery)
+      setTmdbResults(data.results || [])
+    } catch (error) {
+      console.error('TMDB search error:', error)
+      alert('TMDB 검색 중 오류가 발생했습니다. TMDB API 키가 설정되어 있는지 확인하세요.')
+    } finally {
+      setTmdbLoading(false)
+    }
+  }
+
+  // TMDB 결과 선택
+  const handleSelectTmdb = (movie: TMDBMovie) => {
+    const imageUrl = tmdbImageType === 'poster'
+      ? (movie.posterUrl || movie.backdropUrl || '')
+      : (movie.backdropUrl || movie.posterUrl || '')
+
+    setForm(prev => ({
+      ...prev,
+      name: movie.title,
+      description: movie.overview,
+      thumbnail_url: imageUrl,
+    }))
+    setTmdbModal(false)
+    setTmdbQuery('')
+    setTmdbResults([])
+  }
+
+  // 대분류(depth=0) 카테고리 필터링
+  const depth0Categories = categoryTree.filter(c => {
+    if (!activeItemType) return true
+    return c.item_type === activeItemType
+  })
+
+  // 중분류(depth=1) 카테고리 필터링
+  const selectedDepth0 = categoryTree.find(c => c.id === activeDepth0)
+  const depth1Categories = selectedDepth0?.children || []
+
+  // 소분류(depth=2) 카테고리 필터링
+  const selectedDepth1 = depth1Categories.find(c => c.id === activeDepth1)
+  const depth2Categories = selectedDepth1?.children || []
+
+  // 아이템타입 변경 시 카테고리 초기화
+  const handleItemTypeChange = (type: string) => {
+    setActiveItemType(type)
+    setActiveDepth0(0)
+    setActiveDepth1(0)
+    setActiveDepth2(0)
+  }
+
+  // 대분류 변경 시 하위 초기화
+  const handleDepth0Change = (id: number) => {
+    setActiveDepth0(id)
+    setActiveDepth1(0)
+    setActiveDepth2(0)
+  }
+
+  // 중분류 변경 시 소분류 초기화
+  const handleDepth1Change = (id: number) => {
+    setActiveDepth1(id)
+    setActiveDepth2(0)
+  }
 
   return (
     <div>
@@ -134,15 +252,70 @@ function CatalogList({ onDrillDown }: { onDrillDown: (g: CatalogGroup) => void }
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="카탈로그명 검색..." />
             {query && <X size={13} style={{ cursor: 'pointer', color: 'var(--txt-3)' }} onClick={() => setQuery('')} />}
           </div>
+
+          {/* 아이템 타입 필터 */}
           <div className="tabs">
-            <button className={`tab ${activeCat === 0 ? 'on' : ''}`} onClick={() => setActiveCat(0)}>전체</button>
-            {catTabs.map(c => (
-              <button key={c.id} className={`tab ${activeCat === c.id ? 'on' : ''}`} onClick={() => setActiveCat(c.id)}>
-                {c.name}
+            <button className={`tab ${activeItemType === '' ? 'on' : ''}`} onClick={() => handleItemTypeChange('')}>전체타입</button>
+            {ITEM_TYPES.map(t => (
+              <button key={t.value} className={`tab ${activeItemType === t.value ? 'on' : ''}`} onClick={() => handleItemTypeChange(t.value)}>
+                {t.label}
               </button>
             ))}
           </div>
-          <span className="panel-count">{total.toLocaleString()}</span>
+
+          <span className="panel-count">{filtered.length.toLocaleString()} / {total.toLocaleString()}</span>
+        </div>
+
+        {/* 계층적 카테고리 필터 */}
+        <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+          {/* 대분류(depth=0) */}
+          {depth0Categories.length > 0 && (
+            <div className="tabs" style={{ flex: 1 }}>
+              <button className={`tab ${activeDepth0 === 0 ? 'on' : ''}`} onClick={() => handleDepth0Change(0)}>전체</button>
+              {depth0Categories.map(c => (
+                <button key={c.id} className={`tab ${activeDepth0 === c.id ? 'on' : ''}`} onClick={() => handleDepth0Change(c.id)}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 중분류(depth=1) - 대분류 선택 시에만 표시 */}
+        {activeDepth0 !== 0 && depth1Categories.length > 0 && (
+          <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+            <div className="tabs" style={{ flex: 1 }}>
+              <button className={`tab ${activeDepth1 === 0 ? 'on' : ''}`} onClick={() => handleDepth1Change(0)}>전체</button>
+              {depth1Categories.map(c => (
+                <button key={c.id} className={`tab ${activeDepth1 === c.id ? 'on' : ''}`} onClick={() => handleDepth1Change(c.id)}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 소분류(depth=2) - 중분류 선택 시에만 표시 */}
+        {activeDepth1 !== 0 && depth2Categories.length > 0 && (
+          <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+            <div className="tabs" style={{ flex: 1 }}>
+              <button className={`tab ${activeDepth2 === 0 ? 'on' : ''}`} onClick={() => setActiveDepth2(0)}>전체</button>
+              {depth2Categories.map(c => (
+                <button key={c.id} className={`tab ${activeDepth2 === c.id ? 'on' : ''}`} onClick={() => setActiveDepth2(c.id)}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ padding: '0 20px' }}>
+          <span style={{ fontSize: 11, color: 'var(--txt-3)' }}>
+            필터: {activeItemType || '전체타입'}
+            {activeDepth0 !== 0 && ` > ${depth0Categories.find(c => c.id === activeDepth0)?.name}`}
+            {activeDepth1 !== 0 && ` > ${depth1Categories.find(c => c.id === activeDepth1)?.name}`}
+            {activeDepth2 !== 0 && ` > ${depth2Categories.find(c => c.id === activeDepth2)?.name}`}
+          </span>
         </div>
 
         {loading ? (
@@ -234,6 +407,17 @@ function CatalogList({ onDrillDown }: { onDrillDown: (g: CatalogGroup) => void }
                   <img src={form.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
+
+              {/* TMDB 검색 버튼 */}
+              <button
+                className="btn btn-ghost"
+                onClick={() => setTmdbModal(true)}
+                style={{ width: '100%', marginBottom: 14, justifyContent: 'center', gap: 6 }}
+              >
+                <Sparkles size={14} />
+                TMDB에서 검색
+              </button>
+
               <div className="field">
                 <label className="lbl">카탈로그명 *</label>
                 <input className="inp" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="오징어 게임" />
@@ -272,6 +456,127 @@ function CatalogList({ onDrillDown }: { onDrillDown: (g: CatalogGroup) => void }
           </div>
         </div>
       )}
+
+      {/* TMDB 검색 모달 */}
+      {tmdbModal && (
+        <div className="backdrop" onClick={() => setTmdbModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <div className="modal-head">
+              <span className="modal-title">TMDB 검색 (영화 + TV)</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setTmdbModal(false)}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              {/* 검색 입력 */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div className="search" style={{ flex: 1 }}>
+                  <Search size={13} color="var(--txt-3)" />
+                  <input
+                    value={tmdbQuery}
+                    onChange={e => setTmdbQuery(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && handleTmdbSearch()}
+                    placeholder="영화/TV 프로그램 제목 검색..."
+                  />
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={handleTmdbSearch} disabled={tmdbLoading}>
+                  {tmdbLoading ? <Loader2 size={13} className="spin" /> : <Search size={13} />}
+                  검색
+                </button>
+              </div>
+
+              {/* 이미지 타입 선택 */}
+              <div style={{ display: 'flex', gap: 16, marginBottom: 16, padding: '8px 12px', background: 'var(--bg3)', borderRadius: 'var(--r)', fontSize: 12 }}>
+                <span style={{ color: 'var(--txt-3)', fontWeight: 500 }}>사용할 이미지:</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="imageType"
+                    checked={tmdbImageType === 'backdrop'}
+                    onChange={() => setTmdbImageType('backdrop')}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>배경 이미지 (가로)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="imageType"
+                    checked={tmdbImageType === 'poster'}
+                    onChange={() => setTmdbImageType('poster')}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>포스터 (세로)</span>
+                </label>
+              </div>
+
+              {/* 검색 결과 */}
+              {tmdbLoading ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Loader2 size={24} className="spin" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontSize: 13 }}>검색 중...</div>
+                </div>
+              ) : tmdbResults.length > 0 ? (
+                <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                  {tmdbResults.map(movie => (
+                    <div
+                      key={movie.id}
+                      onClick={() => handleSelectTmdb(movie)}
+                      style={{
+                        display: 'flex',
+                        gap: 12,
+                        padding: 12,
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--r)',
+                        marginBottom: 8,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    >
+                      {movie.posterUrl && (
+                        <div style={{ width: 60, height: 90, borderRadius: 4, overflow: 'hidden', flexShrink: 0, background: 'var(--bg3)' }}>
+                          <img src={movie.posterUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>{movie.title}</div>
+                          <span className={`badge ${movie.mediaType === 'movie' ? 'badge-blue' : 'badge-purple'}`} style={{ fontSize: 9, padding: '2px 6px' }}>
+                            {movie.mediaType === 'movie' ? '영화' : 'TV'}
+                          </span>
+                        </div>
+                        {movie.originalTitle !== movie.title && (
+                          <div style={{ fontSize: 11, color: 'var(--txt-3)', marginBottom: 4 }}>{movie.originalTitle}</div>
+                        )}
+                        <div style={{ fontSize: 11, color: 'var(--txt-2)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                          {movie.overview || '설명 없음'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: 'var(--txt-3)', fontFamily: 'DM Mono' }}>{movie.releaseDate}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--gold)' }}>
+                            <Star size={11} fill="var(--gold)" />
+                            {movie.voteAverage.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : tmdbQuery ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Film size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13 }}>검색 결과가 없습니다</div>
+                </div>
+              ) : (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Search size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13 }}>영화 제목을 검색해보세요</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -295,6 +600,13 @@ function ItemsList({ group, onBack }: { group: CatalogGroup; onBack: () => void 
   })
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState('')
+
+  // TMDB 검색
+  const [tmdbModal, setTmdbModal] = useState(false)
+  const [tmdbQuery, setTmdbQuery] = useState('')
+  const [tmdbResults, setTmdbResults] = useState<TMDBMovie[]>([])
+  const [tmdbLoading, setTmdbLoading] = useState(false)
+  const [tmdbImageType, setTmdbImageType] = useState<'poster' | 'backdrop'>('backdrop')
 
   // 카탈로그의 카테고리 기준으로 depth=2 카테고리 필터
   useEffect(() => {
@@ -376,6 +688,38 @@ function ItemsList({ group, onBack }: { group: CatalogGroup; onBack: () => void 
     } catch (e: any) {
       alert(e.response?.data?.message || '삭제 실패')
     }
+  }
+
+  // TMDB 검색
+  const handleTmdbSearch = async () => {
+    if (!tmdbQuery.trim()) return
+    setTmdbLoading(true)
+    try {
+      const data = await adminApi.tmdbSearch(tmdbQuery)
+      setTmdbResults(data.results || [])
+    } catch (error) {
+      console.error('TMDB search error:', error)
+      alert('TMDB 검색 중 오류가 발생했습니다. TMDB API 키가 설정되어 있는지 확인하세요.')
+    } finally {
+      setTmdbLoading(false)
+    }
+  }
+
+  // TMDB 결과 선택
+  const handleSelectTmdb = (movie: TMDBMovie) => {
+    const imageUrl = tmdbImageType === 'poster'
+      ? (movie.posterUrl || movie.backdropUrl || '')
+      : (movie.backdropUrl || movie.posterUrl || '')
+
+    setForm(prev => ({
+      ...prev,
+      title: movie.title,
+      description: movie.overview,
+      image_url: imageUrl,
+    }))
+    setTmdbModal(false)
+    setTmdbQuery('')
+    setTmdbResults([])
   }
 
   const subCategories = categories.filter(c => c.depth === 2)
@@ -571,7 +915,18 @@ function ItemsList({ group, onBack }: { group: CatalogGroup; onBack: () => void 
               </div>
 
               <div className="field">
-                <label className="lbl">이미지 URL</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label className="lbl" style={{ marginBottom: 0 }}>이미지 URL</label>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setTmdbModal(true)}
+                    style={{ fontSize: 11, padding: '4px 8px', height: 'auto' }}
+                  >
+                    <Sparkles size={14} />
+                    TMDB에서 검색
+                  </button>
+                </div>
                 <input className="inp" value={form.image_url}
                   onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))}
                   placeholder="https://..." />
@@ -599,6 +954,127 @@ function ItemsList({ group, onBack }: { group: CatalogGroup; onBack: () => void 
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                 {saving ? '저장 중...' : modal === 'edit' ? '저장' : '추가'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TMDB 검색 모달 */}
+      {tmdbModal && (
+        <div className="backdrop" onClick={() => setTmdbModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <div className="modal-head">
+              <span className="modal-title">TMDB 검색 (영화 + TV)</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setTmdbModal(false)}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              {/* 검색 입력 */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div className="search" style={{ flex: 1 }}>
+                  <Search size={13} color="var(--txt-3)" />
+                  <input
+                    value={tmdbQuery}
+                    onChange={e => setTmdbQuery(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && handleTmdbSearch()}
+                    placeholder="영화/TV 프로그램 제목 검색..."
+                  />
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={handleTmdbSearch} disabled={tmdbLoading}>
+                  {tmdbLoading ? <Loader2 size={13} className="spin" /> : <Search size={13} />}
+                  검색
+                </button>
+              </div>
+
+              {/* 이미지 타입 선택 */}
+              <div style={{ display: 'flex', gap: 16, marginBottom: 16, padding: '8px 12px', background: 'var(--bg3)', borderRadius: 'var(--r)', fontSize: 12 }}>
+                <span style={{ color: 'var(--txt-3)', fontWeight: 500 }}>사용할 이미지:</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="imageTypeItem"
+                    checked={tmdbImageType === 'backdrop'}
+                    onChange={() => setTmdbImageType('backdrop')}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>배경 이미지 (가로)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="imageTypeItem"
+                    checked={tmdbImageType === 'poster'}
+                    onChange={() => setTmdbImageType('poster')}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>포스터 (세로)</span>
+                </label>
+              </div>
+
+              {/* 검색 결과 */}
+              {tmdbLoading ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Loader2 size={24} className="spin" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontSize: 13 }}>검색 중...</div>
+                </div>
+              ) : tmdbResults.length > 0 ? (
+                <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                  {tmdbResults.map(movie => (
+                    <div
+                      key={movie.id}
+                      onClick={() => handleSelectTmdb(movie)}
+                      style={{
+                        display: 'flex',
+                        gap: 12,
+                        padding: 12,
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--r)',
+                        marginBottom: 8,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    >
+                      {movie.posterUrl && (
+                        <div style={{ width: 60, height: 90, borderRadius: 4, overflow: 'hidden', flexShrink: 0, background: 'var(--bg3)' }}>
+                          <img src={movie.posterUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>{movie.title}</div>
+                          <span className={`badge ${movie.mediaType === 'movie' ? 'badge-blue' : 'badge-purple'}`} style={{ fontSize: 9, padding: '2px 6px' }}>
+                            {movie.mediaType === 'movie' ? '영화' : 'TV'}
+                          </span>
+                        </div>
+                        {movie.originalTitle !== movie.title && (
+                          <div style={{ fontSize: 11, color: 'var(--txt-3)', marginBottom: 4 }}>{movie.originalTitle}</div>
+                        )}
+                        <div style={{ fontSize: 11, color: 'var(--txt-2)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                          {movie.overview || '설명 없음'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: 'var(--txt-3)', fontFamily: 'DM Mono' }}>{movie.releaseDate}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--gold)' }}>
+                            <Star size={11} fill="var(--gold)" />
+                            {movie.voteAverage.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : tmdbQuery ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Film size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13 }}>검색 결과가 없습니다</div>
+                </div>
+              ) : (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--txt-3)' }}>
+                  <Search size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13 }}>영화/TV 프로그램 제목을 검색해보세요</div>
+                </div>
+              )}
             </div>
           </div>
         </div>

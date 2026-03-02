@@ -66,6 +66,7 @@ export interface AppSettings {
   app_title: string;
   app_subtitle: string | null;
   app_description: string | null;
+  ads_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -126,10 +127,17 @@ export const adminApi = {
   users: (page = 1, limit = 20) => API.get(`/users?page=${page}&limit=${limit}`).then(r => r.data),
 
   // Catalog Groups
-  groups: (page = 1, limit = 20, categoryId?: number) =>
-    API.get(`/catalog-groups`, { params: { page, limit, ...(categoryId ? { category_id: categoryId } : {}) } }).then(r => r.data),
+  groups: (page = 1, limit = 20, categoryId?: number, itemType?: string) =>
+    API.get(`/catalog-groups`, {
+      params: {
+        page,
+        limit,
+        ...(categoryId ? { category_id: categoryId } : {}),
+        ...(itemType ? { item_type: itemType } : {})
+      }
+    }).then(r => r.data),
   createGroup: (data: Partial<CatalogGroup>) => API.post('/catalog-groups', data).then((r: { data: unknown }) => r.data),
-  updateGroup: (id: number, data: Partial<CatalogGroup>) => API.patch(`/catalog-groups/${id}`, data).then((r: { data: unknown }) => r.data),
+  updateGroup: (id: number, data: Partial<CatalogGroup>) => API.put(`/catalog-groups/${id}`, data).then((r: { data: unknown }) => r.data),
   deleteGroup: (id: number) => API.delete(`/catalog-groups/${id}`),
 
   // Catalog Items
@@ -174,4 +182,8 @@ export const adminApi = {
   getAppSettings: () => API.get('/app-settings').then(r => r.data),
   updateAppSettings: (data: Partial<Omit<AppSettings, 'id' | 'created_at' | 'updated_at'>>) =>
     API.put('/app-settings', data).then(r => r.data),
+
+  // TMDB
+  tmdbSearch: (query: string, page = 1) => API.get('/tmdb/search', { params: { query, page } }).then(r => r.data),
+  tmdbGetMovie: (id: number) => API.get(`/tmdb/movie/${id}`).then(r => r.data),
 }

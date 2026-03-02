@@ -91,7 +91,7 @@ export class InitialSetup1740700000000 implements MigrationInterface {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(category_id) REFERENCES categories(id),
-        FOREIGN KEY(catalog_group_id) REFERENCES catalog_groups(id),
+        FOREIGN KEY(catalog_group_id) REFERENCES catalog_groups(id) ON DELETE SET NULL,
         FOREIGN KEY(owner_id) REFERENCES users(id)
       )
     `);
@@ -284,6 +284,7 @@ export class InitialSetup1740700000000 implements MigrationInterface {
         app_title VARCHAR(50) NOT NULL DEFAULT 'STUB',
         app_subtitle VARCHAR(100),
         app_description TEXT,
+        ads_enabled BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )

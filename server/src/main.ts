@@ -2,6 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import * as dotenv from 'dotenv';
+
+// .env 파일 로드
+dotenv.config();
 
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException]', err);

@@ -24,6 +24,7 @@ import {
 import Navigation from '@/components/Navigation'
 import { catalogGroupsApi, catalogItemsApi, stubsApi, likesApi } from '@/lib/api'
 import type { CatalogGroup, CatalogItem, Stub } from '@/lib/api/types'
+import { useAppSettings } from '@/lib/contexts/AppSettingsContext'
 
 const PAGE_SIZE = 6
 
@@ -74,6 +75,7 @@ export default function CatalogDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session, status } = useSession()
+  const { adsEnabled } = useAppSettings()
   const groupId = Number(params.id)
 
   const [group, setGroup] = useState<CatalogGroup | null>(null)
@@ -242,9 +244,11 @@ export default function CatalogDetailPage() {
             </div>
 
             {/* Ad Banner Slot */}
-            <div id="banner-ad-slot" className="anim anim-d2" style={{ marginTop: '14px' }}>
-              <span className="ad-placeholder-text">광고 연결 영역</span>
-            </div>
+            {adsEnabled && (
+              <div id="banner-ad-slot" className="anim anim-d2" style={{ marginTop: '14px' }}>
+                <span className="ad-placeholder-text">광고 연결 영역</span>
+              </div>
+            )}
 
             {/* Ticket Tabs */}
             <div className="ticket-tabs">

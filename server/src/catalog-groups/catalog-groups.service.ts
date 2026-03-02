@@ -105,13 +105,14 @@ export class CatalogGroupsService {
     return this.sanitizeGroup(group);
   }
 
-  async update(id: number, userId: number, updateDto: UpdateCatalogGroupDto) {
+  async update(id: number, userId: number, userRole: string, updateDto: UpdateCatalogGroupDto) {
     const group = await this.catalogGroupRepo.findOne({ where: { id } });
 
     if (!group) {
       throw new NotFoundException('그룹을 찾을 수 없습니다');
     }
-    if (group.creator_id !== userId) {
+    // Admin은 모든 그룹 수정 가능, 일반 사용자는 본인의 그룹만 수정 가능
+    if (userRole !== 'ADMIN' && group.creator_id !== userId) {
       throw new ForbiddenException('본인의 그룹만 수정할 수 있습니다');
     }
 
@@ -119,13 +120,14 @@ export class CatalogGroupsService {
     return this.catalogGroupRepo.save(group);
   }
 
-  async remove(id: number, userId: number) {
+  async remove(id: number, userId: number, userRole: string) {
     const group = await this.catalogGroupRepo.findOne({ where: { id } });
 
     if (!group) {
       throw new NotFoundException('그룹을 찾을 수 없습니다');
     }
-    if (group.creator_id !== userId) {
+    // Admin은 모든 그룹 삭제 가능, 일반 사용자는 본인의 그룹만 삭제 가능
+    if (userRole !== 'ADMIN' && group.creator_id !== userId) {
       throw new ForbiddenException('본인의 그룹만 삭제할 수 있습니다');
     }
 
